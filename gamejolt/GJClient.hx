@@ -110,7 +110,7 @@ class GJClient
     public static function getUserData(?onSuccess:Bool -> Void, ?onFail:String -> Void):Null<User>
     {
         var urlData = urlResult(urlConstruct('users'), onSuccess, onFail);
-        var daFormat:Null<User> = urlData != null ? cast urlData.users[0] : null;
+        var daFormat:Null<User> = urlData != null && logged ? cast urlData.users[0] : null;
         return daFormat;
     }
 
@@ -134,7 +134,7 @@ class GJClient
     {
         var daParam:Null<Array<Array<String>>> = achievedOnes != null ? [['achieved', Std.string(achievedOnes)]] : null;
         var urlData = urlResult(urlConstruct('trophies', null, daParam), onSuccess, onFail);
-        var daFormat:Null<Array<Trophie>> = urlData != null ? urlData.trophies : null;
+        var daFormat:Null<Array<Trophie>> = urlData != null && logged ? urlData.trophies : null;
         return daFormat;
     }
 
@@ -149,18 +149,32 @@ class GJClient
      */
     public static function trophieAdd(id:Int, ?onSuccess:Bool -> Void, ?onFail:String -> Void)
     {
-        var urlData = urlResult(urlConstruct('trophies', 'add-achieved', [['trophy_id', Std.string(id)]]),
-        function (data:Bool)
+        var daList = getTrophiesList();
+        var curID:Int = -1;
+
+        if (logged && daList != null)
         {
-            if (data) trace('$printPrefix The trophie $id has been achieved by ${getUser()}');
-            if (onSuccess != null) onSuccess(data);
-        },
-        function (error:String)
-        {
-            trace('$printPrefix The trophie $id was not found in the game database!');
-            if (onFail != null) onFail(error);
-        });
-        if (urlData != null) urlData; else return;
+            var urlData = urlResult(urlConstruct('trophies', 'add-achieved', [['trophy_id', Std.string(id)]]),
+            function (data:Bool)
+            {
+                for (troph in 0...daList.length) {if (daList[troph].id == id) {curID = troph; break;}}
+
+                if (curID != -1)
+                {
+                    if (daList[curID].achieved == false)
+                    {
+                        trace('$printPrefix The trophie $id has been achieved by ${getUser()}');
+                        if (onSuccess != null) onSuccess(data);
+                    }
+                }
+            },
+            function (error:String)
+            {
+                trace('$printPrefix The trophie $id was not found in the game database!');
+                if (onFail != null) onFail(error);
+            });
+            if (urlData != null) urlData;   
+        }
     }
 
     /**
@@ -172,20 +186,34 @@ class GJClient
      * @param onSuccess Put a function with actions here, they'll be processed if the process finish successfully.
      * @param onFail Put a function with actions here, they'll be processed if an error has ocurred during the process.
      */
-    public static function trophieRemove(id:Int, ?onSuccess:Bool -> Void, ?onFail:String -> Void)
+     public static function trophieRemove(id:Int, ?onSuccess:Bool -> Void, ?onFail:String -> Void)
     {
-        var urlData = urlResult(urlConstruct('trophies', 'remove-achieved', [['trophy_id', Std.string(id)]]),
-        function (data:Bool)
+        var daList = getTrophiesList();
+        var curID:Int = -1;
+
+        if (logged && daList != null)
         {
-            if (data) trace('$printPrefix The trophie $id has been quitted from ${getUser()}');
-            if (onSuccess != null) onSuccess(data);
-        },
-        function (error:String)
-        {
-            trace('$printPrefix The trophie $id was not found in the game database!');
-            if (onFail != null) onFail(error);
-        });
-        if (urlData != null) urlData; else return;
+            var urlData = urlResult(urlConstruct('trophies', 'remove-achieved', [['trophy_id', Std.string(id)]]),
+            function (data:Bool)
+            {
+                for (troph in 0...daList.length) {if (daList[troph].id == id) {curID = troph; break;}}
+
+                if (curID != -1)
+                {
+                    if (daList[curID].achieved != false)
+                    {
+                        trace('$printPrefix The trophie $id has been achieved by ${getUser()}');
+                        if (onSuccess != null) onSuccess(data);
+                    }
+                }
+            },
+            function (error:String)
+            {
+                trace('$printPrefix The trophie $id was not found in the game database!');
+                if (onFail != null) onFail(error);
+            });
+            if (urlData != null) urlData;   
+        }
     }
 
     /**
@@ -209,7 +237,7 @@ class GJClient
             logged = true;
         },
         onFail);
-        if (urlData != null) urlData; else return;
+        if (urlData != null && !logged) urlData; else return;
     }
 
     /**
@@ -273,7 +301,7 @@ class GJClient
             trace('$printPrefix Is a session active? : $isActive');
             result = logged = isActive;
         });
-        if (urlData != null) urlData;
+        if (urlData != null && logged) urlData;
         return result;
     }
 
