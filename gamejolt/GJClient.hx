@@ -12,16 +12,16 @@ import haxe.crypto.Md5;
  * 
  * Originally made for the game Friday Night Funkin', but it can also be used for every game made with HaxeFlixel
  * 
- * No extra extensions required (except the Flixel and Haxe ones)
+ * No extra extensions required (except the basic Flixel and Haxe ones)
  */
 class GJClient
 {
     // Command Title
-    static var printPrefix = "GameJolt Client:";
+    static var printPrefix:String = "GameJolt Client:";
 
     // SET YOUR GAME DATA BEFORE STARTING THIS!!
-    static var gameID = '';
-    static var gamePrivKey = '';
+    static var gameID:String = '';
+    static var gamePrivKey:String = '';
 
     /*
         ----------------------------------------------------------------
@@ -49,17 +49,39 @@ class GJClient
      */
     public static function setUserInfo(user:Null<String>, token:Null<String>)
     {
-        logout();
+
+        var temp_user = getUser();
+        var temp_token = getToken();
 
         if (user == '') user = null;
         if (token == '') token = null;
 
+        logout();
+
         FlxG.save.data.user = user;
         FlxG.save.data.token = token;
 
-        trace('User GUI data parameters were changed: New User -> ${getUser()} | New Token -> ${getToken()}');
+        if (hasLoginInfo())
+        {
+            authUser(
+                function (success:Bool)
+                {
+                    if (success) trace('User GUI parameters were changed: New User -> ${getUser()} | New Token -> ${getToken()}');
+                    else
+                    {
+                        FlxG.save.data.user = temp_user;
+                        FlxG.save.data.token = temp_token;
+                    }
+                },
+                function (error:String)
+                {
+                    FlxG.save.data.user = temp_user;
+                    FlxG.save.data.token = temp_token;
+                }
+            );
 
-        // login();
+            // login();
+        }
     }
 
     /**
@@ -131,10 +153,12 @@ class GJClient
         function (data:Bool)
         {
             if (data) trace('$printPrefix Trophie $id has been achieved by ${getUser()}');
+            if (onSuccess != null) onSuccess(data);
         },
         function (error:String)
         {
             trace('$printPrefix The trophie $id was not found in the game database!');
+            if (onFail != null) onFail(error);
         });
         if (urlData != null) urlData; else return;
     }
@@ -154,10 +178,12 @@ class GJClient
         function (data:Bool)
         {
             if (data) trace('$printPrefix Trophie $id has been quitted from ${getUser()}');
+            if (onSuccess != null) onSuccess(data);
         },
         function (error:String)
         {
             trace('$printPrefix The trophie $id was not found in the game database!');
+            if (onFail != null) onFail(error);
         });
         if (urlData != null) urlData; else return;
     }
@@ -189,6 +215,9 @@ class GJClient
     /**
      * If there's a session active, this command will log it out. Pretty self-explanatory isn't it?
      * 
+     * But, if you want to log out, but also want to erase your data from the application,
+     * you can use the function `setUserInfo()` with null or empty parameters.
+     * 
      * @param onSuccess Put a function with actions here, they'll be processed if the process finish successfully.
      * @param onFail Put a function with actions here, they'll be processed if an error has ocurred during the process. 
      */
@@ -208,10 +237,9 @@ class GJClient
     /**
      * If there's a session active, this function keeps the session active, so it needs to be placed in somewhere it can be executed repeatedly.
      * 
-     * @param onSuccess Put a function with actions here, they'll be processed if the process finish successfully.
      * @param onFail Put a function with actions here, they'll be processed if an error has ocurred during the process.  
      */
-    public static function pingSession(?onSuccess:Bool -> Void, ?onFail:String -> Void)
+    public static function pingSession(?onFail:String -> Void)
     {
         var urlData = urlResult(urlConstruct('sessions', 'ping'),
         function (pinged:Bool)
@@ -220,9 +248,12 @@ class GJClient
         },
         function (error:String)
         {
-            if (logged) trace('$printPrefix Ping failed! You\'ve been disconnected!');
+            if (logged)
+            {
+                trace('$printPrefix Ping failed! You\'ve been disconnected!');
+                if (onFail != null) onFail(error);
+            }
             logged = false;
-            if (onFail != null) onFail(error);
         });
         if (logged && urlData != null) urlData; else return;
     }
