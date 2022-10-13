@@ -152,7 +152,7 @@ class GJClient
         var urlData = urlResult(urlConstruct('trophies', 'add-achieved', [['trophy_id', Std.string(id)]]),
         function (data:Bool)
         {
-            if (data) trace('$printPrefix Trophie $id has been achieved by ${getUser()}');
+            if (data) trace('$printPrefix The trophie $id has been achieved by ${getUser()}');
             if (onSuccess != null) onSuccess(data);
         },
         function (error:String)
@@ -177,7 +177,7 @@ class GJClient
         var urlData = urlResult(urlConstruct('trophies', 'remove-achieved', [['trophy_id', Std.string(id)]]),
         function (data:Bool)
         {
-            if (data) trace('$printPrefix Trophie $id has been quitted from ${getUser()}');
+            if (data) trace('$printPrefix The trophie $id has been quitted from ${getUser()}');
             if (onSuccess != null) onSuccess(data);
         },
         function (error:String)
@@ -204,9 +204,9 @@ class GJClient
         var urlData = urlResult(urlConstruct('sessions', 'open'),
         function (data:Bool)
         {
-            logged = data;
-            if (data) trace('$printPrefix Logged in successfully!');
-            if (onSuccess != null) onSuccess(data);
+            if (!logged) trace('$printPrefix Logged in successfully!');
+            if (onSuccess != null && !logged) onSuccess(data);
+            logged = true;
         },
         onFail);
         if (urlData != null) urlData; else return;
@@ -227,8 +227,8 @@ class GJClient
         function (data:Bool)
         {
             if (logged) trace('$printPrefix Logged out successfully!');
+            if (onSuccess != null && logged) onSuccess(data);
             logged = false;
-            if (onSuccess != null) onSuccess(data);
         },
         onFail);
         if (logged && urlData != null) urlData; else return;
@@ -294,11 +294,14 @@ class GJClient
             {
                 trace('$printPrefix User authenticated successfully!');
 
-                login(function (success2)
+                login(function (success2:Bool)
                 {
+                    if (!logged)
+                    {
+                        trace('$printPrefix Session Opened! User: ${getUser()}, Token: ${getToken()}');
+                        if (onSuccess != null) onSuccess();
+                    }
                     logged = true;
-                    if (onSuccess != null) onSuccess();
-                    trace('$printPrefix Session Opened! | User: ${getUser()}, Token: ${getToken()}');
                 },
                 function (error2:String)
                 {
