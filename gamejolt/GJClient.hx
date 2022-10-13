@@ -150,27 +150,29 @@ class GJClient
     public static function trophieAdd(id:Int, ?onSuccess:Bool -> Void, ?onFail:String -> Void)
     {
         var daList = getTrophiesList();
-        var curID:Int = -1;
 
         if (logged && daList != null)
         {
             var urlData = urlResult(urlConstruct('trophies', 'add-achieved', [['trophy_id', Std.string(id)]]),
             function (data:Bool)
             {
-                for (troph in 0...daList.length) {if (daList[troph].id == id) {curID = troph; break;}}
-
-                if (curID != -1)
+                for (troph in 0...daList.length)
                 {
-                    if (daList[curID].achieved == false)
+                    if (daList[troph].id == id)
                     {
-                        trace('$printPrefix The trophie $id has been achieved by ${getUser()}');
-                        if (onSuccess != null) onSuccess(data);
+                        if (daList[troph].achieved == false)
+                        {
+                            trace('$printPrefix The trophie "${daList[troph].title}" (Trophie ID: $id) has been achieved by ${getUser()}');
+                            if (onSuccess != null) onSuccess(data);
+                        }
+                        else trace('$printPrefix The trophie "${daList[troph].title}" (Trophie ID: $id) is already achieved by ${getUser()}');
+                        break;
                     }
                 }
             },
             function (error:String)
             {
-                trace('$printPrefix The trophie $id was not found in the game database!');
+                trace('$printPrefix The trophie ID "$id" was not found in the game database!');
                 if (onFail != null) onFail(error);
             });
             if (urlData != null) urlData;   
@@ -186,30 +188,32 @@ class GJClient
      * @param onSuccess Put a function with actions here, they'll be processed if the process finish successfully.
      * @param onFail Put a function with actions here, they'll be processed if an error has ocurred during the process.
      */
-     public static function trophieRemove(id:Int, ?onSuccess:Bool -> Void, ?onFail:String -> Void)
+    public static function trophieRemove(id:Int, ?onSuccess:Bool -> Void, ?onFail:String -> Void)
     {
         var daList = getTrophiesList();
-        var curID:Int = -1;
 
         if (logged && daList != null)
         {
             var urlData = urlResult(urlConstruct('trophies', 'remove-achieved', [['trophy_id', Std.string(id)]]),
             function (data:Bool)
             {
-                for (troph in 0...daList.length) {if (daList[troph].id == id) {curID = troph; break;}}
-
-                if (curID != -1)
+                for (troph in 0...daList.length)
                 {
-                    if (daList[curID].achieved != false)
+                    if (daList[troph].id == id)
                     {
-                        trace('$printPrefix The trophie $id has been achieved by ${getUser()}');
-                        if (onSuccess != null) onSuccess(data);
+                        if (daList[troph].achieved == false)
+                        {
+                            trace('$printPrefix The trophie "${daList[troph].title}" (Trophie ID: $id) has been quitted from ${getUser()}');
+                            if (onSuccess != null) onSuccess(data);
+                        }
+                        else trace('$printPrefix The trophie "${daList[troph].title}" (Trophie ID: $id) is not achieved by ${getUser()} yet.');
+                        break;
                     }
                 }
             },
             function (error:String)
             {
-                trace('$printPrefix The trophie $id was not found in the game database!');
+                trace('$printPrefix The trophie ID "$id" was not found in the game database!');
                 if (onFail != null) onFail(error);
             });
             if (urlData != null) urlData;   
