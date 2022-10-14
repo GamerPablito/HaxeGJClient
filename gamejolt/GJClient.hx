@@ -20,8 +20,8 @@ class GJClient
     static var printPrefix:String = "GameJolt Client:";
 
     // SET YOUR GAME DATA BEFORE STARTING THIS!!
-    static var gameID:String = '';
-    static var gamePrivKey:String = '';
+    static var gameID:String = '748216';
+    static var gamePrivKey:String = 'cee9d05de016c5a5212503cfb910052f';
 
     /*
         ----------------------------------------------------------------
@@ -201,7 +201,7 @@ class GJClient
                 {
                     if (daList[troph].id == id)
                     {
-                        if (daList[troph].achieved == false)
+                        if (daList[troph].achieved != false)
                         {
                             trace('$printPrefix The trophie "${daList[troph].title}" (Trophie ID: $id) has been quitted from ${getUser()}');
                             if (onSuccess != null) onSuccess(data);
