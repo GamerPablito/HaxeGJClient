@@ -20,8 +20,8 @@ class GJClient
     static var printPrefix:String = "GameJolt Client:";
 
     // SET YOUR GAME DATA BEFORE STARTING THIS!!
-    static var gameID:String = '748216';
-    static var gamePrivKey:String = 'cee9d05de016c5a5212503cfb910052f';
+    static var gameID:String = '';
+    static var gamePrivKey:String = '';
 
     /*
         ----------------------------------------------------------------
