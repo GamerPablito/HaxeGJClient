@@ -49,7 +49,7 @@ Hope this custom tool would come in handy to you :)
 - If you need, you can check out the `formats` folder to check every existent format for any kind of use you wanna test out.
 - If you want to upload your FNF Mod/Game to GitHub or somewhere else to make it public, make sure to change your `gamePrivKey`
   from your Game GJ Website Database, otherwise your FNF Mod/Game can be hacked by other people.
-  You must need to create a copy of the source code with the new `gamePrivKey` after the change in the website (For Private Use Only)
+  You must create a copy of the source code with the new `gamePrivKey` after the change in the website (For Private Use Only)
 - You can also check the [changelog](CHANGELOG.md) file to stay tuned about the new changes that comes to this client.
 
 ## Still have doubts about its use?
