@@ -66,7 +66,7 @@ class GJClient
             authUser(
                 function (success:Bool)
                 {
-                    if (success) trace('User GUI parameters were changed: New User -> ${getUser()} | New Token -> ${getToken()}');
+                    if (success) trace('GUI Parameters were changed: New User -> ${getUser()} | New Token -> ${getToken()}');
                     else
                     {
                         FlxG.save.data.user = temp_user;
@@ -236,7 +236,7 @@ class GJClient
         var urlData = urlResult(urlConstruct('sessions', 'open'),
         function (data:Bool)
         {
-            if (!logged) trace('$printPrefix Logged in successfully!');
+            if (!logged) trace('$printPrefix Logged in successfully! User: ${getUser()}, Token: ${getToken()}');
             if (onSuccess != null && !logged) onSuccess(data);
             logged = true;
         },
@@ -328,11 +328,7 @@ class GJClient
 
                 login(function (success2:Bool)
                 {
-                    if (!logged)
-                    {
-                        trace('$printPrefix Session Opened! User: ${getUser()}, Token: ${getToken()}');
-                        if (onSuccess != null) onSuccess();
-                    }
+                    if (onSuccess != null && !logged) onSuccess();
                     logged = true;
                 },
                 function (error2:String)
