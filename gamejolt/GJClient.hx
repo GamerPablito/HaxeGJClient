@@ -19,10 +19,6 @@ class GJClient
     // Command Title
     static var printPrefix:String = "GameJolt Client:";
 
-    // SET YOUR GAME DATA BEFORE STARTING THIS!!
-    static var gameID:String = '';
-    static var gamePrivKey:String = '';
-
     /*
         ----------------------------------------------------------------
         -------------> GUI = GameJolt User Information <------------------
@@ -361,13 +357,13 @@ class GJClient
             mainURL += command;
             mainURL += '/' + (action != null ? '$action/?' : '?');
     
-            mainURL += 'game_id=${gameID}&';
+            mainURL += 'game_id=${Std.string(GJKeys.id)}&'; // Private Thingie (Fuck you hackers lmao)
             mainURL += 'username=${getUser()}&';
             mainURL += 'user_token=${getToken()}';
     
             if (params != null) {for (pars in params) mainURL += '&${pars[0]}=${pars[1]}';}
     
-            mainURL += '&signature=${Md5.encode(mainURL + gamePrivKey)}';
+            mainURL += '&signature=${Md5.encode(mainURL + GJKeys.key)}'; // Private Thingie (Fuck you hackers lmao)
     
             return new Http(mainURL);
         }
@@ -385,8 +381,8 @@ class GJClient
             daUrl.onData = function (data:String)
             {
                 result = data;
-                success = Json.parse(data).response.success == 'true';
-                if (onSuccess != null) onSuccess(success);
+                success = true;
+                if (onSuccess != null) onSuccess(Json.parse(data).response.success == 'true');
             };
             daUrl.onError = function (error:String) {if (onFail != null) onFail(error);};
             daUrl.request(false);
