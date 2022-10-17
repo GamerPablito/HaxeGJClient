@@ -1,5 +1,10 @@
 # GameJolt Client Changelog
 
+## V1.1
+- The `checkSessionActive()` function was repaired successfully
+- Game Data can now be privatized (Check out the [README](README.md to know how))
+- URL Constructions rearranged to fix other minor issues
+
 ## V1.0
 - URL construction for requests now contains the common vars in its scripting
 - Users format support implanted

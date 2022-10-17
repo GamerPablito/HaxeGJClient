@@ -25,8 +25,31 @@ Hope this custom tool would come in handy to you :)
 ## How to Use in Game
 1. Download this repository
 2. Copy the `gamejolt` folder into the `source` folder of your game
-3. Go to the `GJClient.hx` and setup the `gameID` and `gamePrivKey` vars from your Game GJ Website (if you don't have one, go create one and put the data there)
-4. Every time you insert a command from this in some part of your game, make sure its limited by an .xml conditional: "if desktop". Example:
+3. Once copied, you must create a `GJKeys.hx` file into the `gamejolt` folder, where you'll put the Game GJ Data for the client, this will remain with yourself in order to avoid hackers.
+Example:
+```
+package gamejolt;
+
+class GJKeys
+{
+  public static var id:Int = 0; // Your Game ID
+  public static var key:String = ''; // Your Game Private Key
+}
+```
+4. When you're about to upload the source code to GitHub, you must go first to the `.gitignore` file, this is where the ignored files are specified to GitHub for don't include them in commits, if you don't have one so create one, then add the directory of the `GJKeys.hx` file to it (this to make GitHub to don't upload that file)
+Example:
+```
+export/
+.vscode/
+APIStuff.hx
+art/build_x32-officialrelease.bat
+art/build_x64-officialrelease.bat
+art/test_x64-debug-officialrelease.bat
+
+source/gamejolt/GJKeys.hx
+```
+
+Note: Every time you insert a command from this in some part of your game, make sure its limited by the .xml conditional: "if desktop". Example:
   ```
   #if desktop
   import gamejolt.GJClient;
@@ -44,13 +67,6 @@ Hope this custom tool would come in handy to you :)
     }
   }
   ```
-
-## Recommendations/Warnings
-- If you need, you can check out the `formats` folder to check every existent format for any kind of use you wanna test out.
-- If you want to upload your FNF Mod/Game to GitHub or somewhere else to make it public, make sure to change your `gamePrivKey`
-  from your Game GJ Website Database, otherwise your FNF Mod/Game can be hacked by other people.
-  You must create a copy of the source code with the new `gamePrivKey` after the change in the website (For Private Use Only)
-- You can also check the [changelog](CHANGELOG.md) file to stay tuned about the new changes that comes to this client.
 
 ## Still have doubts about its use?
 If you're still have questions about how to use this client correctly,
