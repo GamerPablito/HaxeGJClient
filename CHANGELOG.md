@@ -2,7 +2,7 @@
 
 ## V1.1
 - The `checkSessionActive()` function was repaired successfully
-- Game Data can now be privatized (Check out the [README](README.md to know how))
+- Game Data can now be privatized (Check out the [README](README.md) to know how!)
 - URL Constructions rearranged to fix other minor issues
 
 ## V1.0
