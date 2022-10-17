@@ -272,7 +272,7 @@ class GJClient
         var urlData = urlResult(urlConstruct('sessions', 'ping'),
         function (pinged:Bool)
         {
-            trace('$printPrefix Session pinged!');
+            if (logged && pinged) trace('$printPrefix Session pinged!');
         },
         function (error:String)
         {
