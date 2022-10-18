@@ -32,6 +32,11 @@ class GJClient
     public static var logged:Bool = false;
 
     /**
+     * It tells you if you have enabled the auto-login option (Read Only, if you want to change it you must use `toggleAutoLogin()`)
+     */
+    public static var autoLogin:Bool = true;
+
+    /**
      * Sets a new GUI in the database, the Username and the Game Token of the player respectively.
      * This command also closes the previous session (if there was one active) before replace the actual GUI.
      * 
@@ -101,7 +106,7 @@ class GJClient
      * 
      * @param onSuccess Put a function with actions here, they'll be processed if the process finish successfully.
      * @param onFail Put a function with actions here, they'll be processed if an error has ocurred during the process.
-     * @return The GUI in .json format (or null if any data is available in the application to use yet).
+     * @return The GUI in .json format (or `null` if any data is available in the application to use yet).
      */
     public static function getUserData(?onSuccess:Bool -> Void, ?onFail:String -> Void):Null<User>
     {
@@ -124,7 +129,8 @@ class GJClient
      *                        or doesn't appear according to what you choose in this variable, the result will be `null`.
      * @param onSuccess     Put a function with actions here, they'll be processed if the process finish successfully.
      * @param onFail         Put a function with actions here, they'll be processed if an error has ocurred during the process.
-     * @return The array with all the trophies of the game in .json format (or null if there's no GUI inserted in the application yet).
+     * @return The array with all the Trophies of the game in .json format
+     *          (return `null` if there are no Trophies in the game to fetch or if there's no GUI inserted in the application yet).
      */
     public static function getTrophiesList(?achievedOnes:Bool, ?onSuccess:Bool -> Void, ?onFail:String -> Void):Null<Array<Trophie>>
     {
@@ -158,7 +164,12 @@ class GJClient
                     {
                         if (daList[troph].achieved == false)
                         {
-                            trace('$printPrefix The trophie "${daList[troph].title}" (Trophie ID: $id) has been achieved by ${getUser()}');
+                            trace('-------------------------');
+                            trace('$printPrefix New trophie Achieved by ${getUser()}!');
+                            trace('Title: ${daList[troph].title}');
+                            trace('ID: $id');
+                            trace('-------------------------');
+
                             if (onSuccess != null) onSuccess(data);
                         }
                         else trace('$printPrefix The trophie "${daList[troph].title}" (Trophie ID: $id) is already achieved by ${getUser()}');
@@ -171,7 +182,7 @@ class GJClient
                 trace('$printPrefix The trophie ID "$id" was not found in the game database!');
                 if (onFail != null) onFail(error);
             });
-            if (urlData != null) urlData;   
+            if (urlData != null) urlData; else return;   
         }
     }
 
@@ -199,7 +210,12 @@ class GJClient
                     {
                         if (daList[troph].achieved != false)
                         {
-                            trace('$printPrefix The trophie "${daList[troph].title}" (Trophie ID: $id) has been quitted from ${getUser()}');
+                            trace('-------------------------');
+                            trace('$printPrefix Trophie removed from ${getUser()}!');
+                            trace('Title: ${daList[troph].title}');
+                            trace('ID: $id');
+                            trace('-------------------------');
+
                             if (onSuccess != null) onSuccess(data);
                         }
                         else trace('$printPrefix The trophie "${daList[troph].title}" (Trophie ID: $id) is not achieved by ${getUser()} yet.');
@@ -212,8 +228,115 @@ class GJClient
                 trace('$printPrefix The trophie ID "$id" was not found in the game database!');
                 if (onFail != null) onFail(error);
             });
-            if (urlData != null) urlData;   
+            if (urlData != null) urlData; else return;  
         }
+    }
+
+    /**
+     * Fetches all the scores submitted on a score table in your game,
+     * all the scores will have their own data formatted in .json.
+     * 
+     * You can set if you want to fetch the scores in the table from the actual user or from the game in general!
+     * 
+     * @see The `formats` folder, to get more info about how formats are setted like.
+     * 
+     * @param fromUser This is where you can set if you want to fetch scores from the actual logged user only (`true`), or from the game itself (`false`)
+     * @param table_id The Score Table ID where the scores will be fetched from (if `null`, the scores will be fetched from the "Primary" score table in your game)
+     * @param delimiter If you want to fetch the scores that are major or minor than a certain value, set it here, otherwise leave in blank.
+     *                    (Note: If you want the scores that are ABOVE the value, set it in POSITIVE, but
+     *                     if you want the scores that are BELOW the value, set it in NEGATIVE)
+     * @param onSuccess Put a function with actions here, they'll be processed if the process finish successfully.
+     * @param onFail Put a function with actions here, they'll be processed if an error has ocurred during the process.
+     * @param limit The number of scores to return. Must be a number between 1 and 100 (Default: 10)
+     * @return The array with all the Scores of the game in .json format from the settled Score Table ID
+     *          (return `null` if there are no Scores in the game to fetch or if there's no GUI inserted in the application yet).
+     */
+    public static function getScoresList(fromUser:Bool, ?table_id:Int, ?delimiter:Int, ?onSuccess:Bool -> Void, ?onFail:String -> Void, limit:Int = 10):Null<Array<Score>>
+    {
+        var daParams:Array<Array<String>> = [];
+
+        if (table_id != null) daParams.push(['table_id', Std.string(table_id)]);
+        if (delimiter != null) daParams.push([delimiter > 0 ? 'better_than' : 'worse_than', Std.string(Math.abs(delimiter))]);
+
+        if (limit <= 0) limit = 1;
+        if (limit > 100) limit = 100;
+
+        if (limit != 10) daParams.push(['limit', Std.string(limit)]);
+
+        var urlData = urlResult(urlConstruct('scores', null, daParams != [] ? daParams : null, fromUser, fromUser), onSuccess, onFail);
+        var daFormat:Null<Array<Score>> = urlData != null && logged ? urlData.scores : null;
+        return daFormat;
+    }
+
+    /**
+     * Submits a new score made by the actual logged user to a specified score table in your game!
+     * 
+     * @param score_content The stringified version of the score. Example: 500 jumps.
+     * @param score_value The score itself. Example: 500.
+     * @param extraInfo If you want to, you can give extra information about how the score was obtained,
+     *                    useful to make game developers know if the player obtained that score legally, but this is completely optional.
+     * @param table_id The Score Table ID where the new score will be submitted to (if `null`, the score will be submitted from the "Primary" score table in your game)
+     * @param onSuccess Put a function with actions here, they'll be processed if the process finish successfully.
+     * @param onFail Put a function with actions here, they'll be processed if an error has ocurred during the process.
+     */
+    public static function submitNewScore(score_content:String, score_value:Int, ?extraInfo:String, ?table_id:Int, ?onSuccess:Bool -> Void, ?onFail:String -> Void)
+    {
+        var daParams:Array<Array<String>> = [
+            ['score', score_content],
+            ['sort', Std.string(score_value)]
+        ];
+
+        if (extraInfo != null) daParams.push(['extra_data', extraInfo]);
+        if (table_id != null) daParams.push(['table_id', Std.string(table_id)]);
+
+        if (logged)
+        {
+            var urlData = urlResult(urlConstruct('scores', 'add', daParams),
+            function (data:Bool)
+            {
+                if (logged && data)
+                {
+                    trace('-------------------------');
+                    trace('$printPrefix Score Submitted!');
+                    trace('-> Score: $score_content');
+                    trace('-> Sort: $score_value');
+                    trace('-> Extra Info: ${extraInfo != null ? extraInfo : '(No Extra Info Available)'}');
+                    trace('-> Table ID: ${table_id != null ? Std.string(table_id) : 'Primary Table'}');
+                    trace('-------------------------');
+                }
+            },
+            function (error:String)
+            {
+                trace('$printPrefix Score submitting failed!');
+                if (onFail != null) onFail(error);
+            });
+            if (urlData != null) urlData; else return;   
+        }
+    }
+
+    /**
+     * Gives you the global rank you got in a certain score table in your game.
+     * This is given according to the top score you have in that table.
+     * 
+     * @param table_id The Score Table ID where the rank will be obtained from (if `null`, the rank will be given from the "Primary" score table in your game)
+     * @return The global rank obtained from the score table
+     */
+    public static function getGlobalRank(?table_id:Int):Null<Int>
+    {
+        var daTempScore = getScoresList(true, table_id, null, null, null, 1);
+
+        if (logged && daTempScore != null)
+        {
+            var daParams = [['sort', Std.string(daTempScore[0].sort)]];
+            if (table_id != null) daParams.push(['table_id', Std.string(table_id)]);
+
+            var urlData = urlResult(urlConstruct('scores', 'get-rank', daParams, false, false));
+            var daRank:Null<Int> = urlData != null && logged ? urlData.rank : null;
+
+            return daRank;
+        }
+
+        return -1;
     }
 
     /**
@@ -232,7 +355,14 @@ class GJClient
         var urlData = urlResult(urlConstruct('sessions', 'open'),
         function (data:Bool)
         {
-            if (!logged) trace('$printPrefix Logged in successfully! User: ${getUser()}, Token: ${getToken()}');
+            if (!logged && data)
+            {
+                trace('-------------------------');
+                trace('$printPrefix Logged Successfully!');
+                trace('-> User: ${getUser()}');
+                trace('-> Token: ${getToken()}');
+                trace('-------------------------');
+            }
             if (onSuccess != null && !logged) onSuccess(data);
             logged = true;
         },
@@ -304,6 +434,12 @@ class GJClient
         if (urlData != null && logged) urlData;
         return result;
     }
+    
+    /**
+     * It toggles the autoLogin option. Pretty self-explanatory, isn't it?
+     * @param toggle Want it to be active or not?
+     */
+    public static function toggleAutoLogin(toggle:Bool) {FlxG.save.data.autoLogin = autoLogin = toggle;}
 
     /**
      * This initialize the client in general.
@@ -316,7 +452,9 @@ class GJClient
      */
     public static function initialize(?onSuccess:() -> Void, ?onFail:() -> Void)
     {
-        if (hasLoginInfo() && !logged)
+        autoLogin = autoLoginToggle();
+
+        if (hasLoginInfo() && !logged && autoLogin)
         {
             authUser(function (success1:Bool)
             {
@@ -339,6 +477,7 @@ class GJClient
                 if (onFail != null) onFail();
             });
         }
+        else return;
     }
 
     // INTERNAL FUNCTIONS (DON'T ALTER IF YOU DON'T KNOW WHAT YOU'RE DOING!!)
@@ -348,18 +487,18 @@ class GJClient
         return getUser() != null && getToken() != null;
     }
 
-    static function urlConstruct(command:String, ?action:String, ?params:Array<Array<String>>):Null<Http>
+    static function urlConstruct(command:String, ?action:String, ?params:Array<Array<String>>, userAllowed:Bool = true, tokenAllowed:Bool = true):Null<Http>
     {
         if (hasLoginInfo())
         {
-            var mainURL:String = "http://api.gamejolt.com/api/game/v1_1/";
+            var mainURL:String = "http://api.gamejolt.com/api/game/v1_2/";
 
             mainURL += command;
-            mainURL += '/' + (action != null ? '$action/?' : '?');
-    
-            mainURL += 'game_id=${Std.string(GJKeys.id)}&'; // Private Thingie (Fuck you hackers lmao)
-            mainURL += 'username=${getUser()}&';
-            mainURL += 'user_token=${getToken()}';
+            mainURL += '/' + (action != null ? '$action/?' : '?');    
+            mainURL += 'game_id=${Std.string(GJKeys.id)}'; // Private Thingie (Fuck you hackers lmao)
+
+            if (userAllowed) mainURL += '&username=${getUser()}';
+            if (tokenAllowed) mainURL += '&user_token=${getToken()}';
     
             if (params != null) {for (pars in params) mainURL += '&${pars[0]}=${pars[1]}';}
     
@@ -393,4 +532,9 @@ class GJClient
 
     static function getUser():Null<String> {return FlxG.save.data.user;}
     static function getToken():Null<String> {return FlxG.save.data.token;}
+    static function autoLoginToggle():Bool
+    {
+        if (FlxG.save.data.autoLogin == null) toggleAutoLogin(true);
+        return FlxG.save.data.autoLogin;
+    }
 }
