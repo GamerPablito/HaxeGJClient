@@ -76,4 +76,4 @@ You can also check out my [Youtube Channel](https://www.youtube.com/channel/UCpa
 where I'll be uploading everything related to this project and more stuff :)
 
 ## Special Thanks
-- @EyeDaleHim : For suggest me about a better command for printing responses
+- [@EyeDaleHim](https://github.com/EyeDaleHim) : For suggest me about a better command for printing responses
