@@ -1,5 +1,13 @@
 # GameJolt Client Changelog
 
+## V1.2
+- Now the commands are processed under the current GameJolt API Version (v1.2, no longer v1.1)
+- Auto-Login option implanted (now you can choose if you want or not to be logged in the game automatically when the game opens)
+- Global rank feature added
+- Scores format support implanted
+- Some command descriptions were polished
+- The tracing commands of answer are now ordered by labels instead of put everything in just one line, for a better track of what the commands do
+
 ## V1.1
 - The `checkSessionActive()` function was repaired successfully
 - Game Data can now be privatized (Check out the [README](README.md) to know how!)
