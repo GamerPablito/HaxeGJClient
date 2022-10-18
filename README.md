@@ -74,3 +74,6 @@ you're free to talk to me by [Twitter](https://twitter.com/GamerPablito1) or Dis
 
 You can also check out my [Youtube Channel](https://www.youtube.com/channel/UCpavbRRdISmsF_fpiAuVafg),
 where I'll be uploading everything related to this project and more stuff :)
+
+## Special Thanks
+- @EyeDaleHim : For suggest me about a better command for printing responses
