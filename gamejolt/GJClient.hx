@@ -67,7 +67,7 @@ class GJClient
             authUser(
                 function (success:Bool)
                 {
-                    if (success) trace('GUI Parameters were changed: New User -> ${getUser()} | New Token -> ${getToken()}');
+                    if (success) Sys.printLn('GUI Parameters Changed: New User -> ${getUser()} | New Token -> ${getToken()}');
                     else
                     {
                         FlxG.save.data.user = temp_user;
@@ -164,22 +164,17 @@ class GJClient
                     {
                         if (daList[troph].achieved == false)
                         {
-                            trace('-------------------------');
-                            trace('$printPrefix New trophie Achieved by ${getUser()}!');
-                            trace('Title: ${daList[troph].title}');
-                            trace('ID: $id');
-                            trace('-------------------------');
-
+                            Sys.printLn('$printPrefix Trophie "${daList[troph].title}" has been achieved by ${getUser()}!');
                             if (onSuccess != null) onSuccess(data);
                         }
-                        else trace('$printPrefix The trophie "${daList[troph].title}" (Trophie ID: $id) is already achieved by ${getUser()}');
+                        else Sys.printLn('$printPrefix Trophie "${daList[troph].title}" is already taken by ${getUser()}!');
                         break;
                     }
                 }
             },
             function (error:String)
             {
-                trace('$printPrefix The trophie ID "$id" was not found in the game database!');
+                Sys.printLn('$printPrefix The trophie ID "$id" was not found in the game database!');
                 if (onFail != null) onFail(error);
             });
             if (urlData != null) urlData; else return;   
@@ -210,22 +205,17 @@ class GJClient
                     {
                         if (daList[troph].achieved != false)
                         {
-                            trace('-------------------------');
-                            trace('$printPrefix Trophie removed from ${getUser()}!');
-                            trace('Title: ${daList[troph].title}');
-                            trace('ID: $id');
-                            trace('-------------------------');
-
+                            Sys.printLn('$printPrefix Trophie "${daList[troph].title}" has been quitted from ${getUser()}!');
                             if (onSuccess != null) onSuccess(data);
                         }
-                        else trace('$printPrefix The trophie "${daList[troph].title}" (Trophie ID: $id) is not achieved by ${getUser()} yet.');
+                        else Sys.printLn('$printPrefix Trophie "${daList[troph].title}" is not taken by ${getUser()} yet!');
                         break;
                     }
                 }
             },
             function (error:String)
             {
-                trace('$printPrefix The trophie ID "$id" was not found in the game database!');
+                Sys.printLn('$printPrefix The trophie ID "$id" was not found in the game database!');
                 if (onFail != null) onFail(error);
             });
             if (urlData != null) urlData; else return;  
@@ -296,18 +286,18 @@ class GJClient
             {
                 if (logged && data)
                 {
-                    trace('-------------------------');
-                    trace('$printPrefix Score Submitted!');
-                    trace('-> Score: $score_content');
-                    trace('-> Sort: $score_value');
-                    trace('-> Extra Info: ${extraInfo != null ? extraInfo : '(No Extra Info Available)'}');
-                    trace('-> Table ID: ${table_id != null ? Std.string(table_id) : 'Primary Table'}');
-                    trace('-------------------------');
+                    
+                    Sys.printLn('$printPrefix Score Submitted!');
+                    Sys.printLn('-> Score: $score_content');
+                    Sys.printLn('-> Sort: $score_value');
+                    Sys.printLn('-> Extra Info: ${extraInfo != null ? extraInfo : '(No Extra Info Available)'}');
+                    Sys.printLn('-> Table ID: ${table_id != null ? Std.string(table_id) : 'Primary Table'}');
+                    
                 }
             },
             function (error:String)
             {
-                trace('$printPrefix Score submitting failed!');
+                Sys.printLn('$printPrefix Score submitting failed!');
                 if (onFail != null) onFail(error);
             });
             if (urlData != null) urlData; else return;   
@@ -355,14 +345,7 @@ class GJClient
         var urlData = urlResult(urlConstruct('sessions', 'open'),
         function (data:Bool)
         {
-            if (!logged && data)
-            {
-                trace('-------------------------');
-                trace('$printPrefix Logged Successfully!');
-                trace('-> User: ${getUser()}');
-                trace('-> Token: ${getToken()}');
-                trace('-------------------------');
-            }
+            if (!logged && data) {Sys.printLn('$printPrefix Logged Successfully! Welcome to the game, dear ${getUser()}!');}
             if (onSuccess != null && !logged) onSuccess(data);
             logged = true;
         },
@@ -384,7 +367,7 @@ class GJClient
         var urlData = urlResult(urlConstruct('sessions', 'close'),
         function (data:Bool)
         {
-            if (logged) trace('$printPrefix Logged out successfully!');
+            if (logged) Sys.printLn('$printPrefix Logged out successfully!');
             if (onSuccess != null && logged) onSuccess(data);
             logged = false;
         },
@@ -397,18 +380,22 @@ class GJClient
      * 
      * @param onFail Put a function with actions here, they'll be processed if an error has ocurred during the process.  
      */
-    public static function pingSession(?onFail:String -> Void)
+    public static function pingSession(?onPing:() -> Void, ?onFail:String -> Void)
     {
         var urlData = urlResult(urlConstruct('sessions', 'ping'),
         function (pinged:Bool)
         {
-            if (logged && pinged) trace('$printPrefix Session pinged!');
+            if (logged && pinged)
+            {
+                Sys.printLn('$printPrefix Session pinged!');
+                onPing();
+            }
         },
         function (error:String)
         {
             if (logged)
             {
-                trace('$printPrefix Ping failed! You\'ve been disconnected!');
+                Sys.printLn('$printPrefix Ping failed! You\'ve been disconnected!');
                 if (onFail != null) onFail(error);
             }
             logged = false;
@@ -428,7 +415,7 @@ class GJClient
         var urlData = urlResult(urlConstruct('sessions', 'check'),
         function (isActive:Bool)
         {
-            trace('$printPrefix Is a session active? : $isActive');
+            Sys.printLn('$printPrefix Is a session active? : $isActive');
             result = logged = isActive;
         });
         if (urlData != null && logged) urlData;
@@ -458,7 +445,7 @@ class GJClient
         {
             authUser(function (success1:Bool)
             {
-                trace('$printPrefix User authenticated successfully!');
+                Sys.printLn('$printPrefix User authenticated successfully!');
 
                 login(function (success2:Bool)
                 {
@@ -467,13 +454,13 @@ class GJClient
                 },
                 function (error2:String)
                 {
-                    trace('$printPrefix Login process failed!');
+                    Sys.printLn('$printPrefix Login process failed!');
                     if (onFail != null) onFail();
                 });
             },
             function (error1:String)
             {
-                trace('$printPrefix User authentication failed!');
+                Sys.printLn('$printPrefix User authentication failed!');
                 if (onFail != null) onFail();
             });
         }
