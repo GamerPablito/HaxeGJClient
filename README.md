@@ -18,15 +18,17 @@ Hope this custom tool would come in handy to you :)
   - `Http` (used to track info from the GameJolt API)
   - `Json` (used to cast specific information formats from the fetched data)
   - `crypto.Md5` (used to encript a special signature to access the API in a safe way)
+  - `crypto.Sha1` (it's an alternative for `crypto.Md5`, works the same)
 - This client is totally independient, it doesn't requires any extra GameJolt libraries to work, cuz everything is written and composed here
 - This also contains some files with info formats about how some data has to be received like, this in order to let the user know how to use the data in their game
+- Has many extra features that can be fetched instantly without you have to code a lot for them
 - Every file is full of instructions for each command, in order to do the things right if you don't know so much about it
 
 ## How to Use in Game
 1. Download this repository
 2. Copy the `gamejolt` folder into the `source` folder of your game
 3. Once copied, you must create a `GJKeys.hx` file into the `gamejolt` folder, where you'll put the Game GJ Data for the client, this will remain with yourself in order to avoid hackers.
-Example:
+Here's a template:
 ```
 package gamejolt;
 
@@ -36,7 +38,7 @@ class GJKeys
   public static var key:String = ''; // Your Game Private Key
 }
 ```
-4. When you're about to upload the source code to GitHub, you must go first to the `.gitignore` file, this is where the ignored files are specified to GitHub for don't include them in commits, if you don't have one so create one, then add the directory of the `GJKeys.hx` file to it (this to make GitHub to don't upload that file)
+4. When you're about to upload the source code to GitHub, you must go first to the `.gitignore` file, this is where the ignored files are specified to GitHub for don't include them in commits, if you don't have one so create one, then add the directory of the `GJKeys.hx` file to it (this to make GitHub to don't upload that file).
 Example:
 ```
 export/
@@ -49,7 +51,7 @@ art/test_x64-debug-officialrelease.bat
 source/gamejolt/GJKeys.hx
 ```
 
-Note: Every time you insert a command from this in some part of your game, make sure its limited by the .xml conditional: "if desktop". Example:
+Note: Every time you insert a command from this in some part of your game, make sure its limited by the .xml conditional: "if desktop", cuz this client is made for computers only. Example:
   ```
   #if desktop
   import gamejolt.GJClient;

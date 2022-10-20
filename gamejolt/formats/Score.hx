@@ -19,7 +19,7 @@ typedef Score =
     extra_data:String,
     user:String,
     user_id:Int,
-    guest:String,
-    stored:String,
-    stored_timestamp:Int
+    ?guest:String,
+    ?stored:String,
+    ?stored_timestamp:Int
 }

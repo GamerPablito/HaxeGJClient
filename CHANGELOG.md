@@ -2,10 +2,12 @@
 
 ## V1.2
 - Now the commands are processed under the current GameJolt API Version (v1.2, no longer v1.0)
+- Now you can choose if you want to use `Md5` or `Sha1` encriptation for the command processing
 - Auto-Login option implanted (now you can choose if you want or not to be logged in the game automatically when the game opens)
 - Global rank feature added
 - Scores format support implanted
 - Some command descriptions were polished
+- Some of the commands now return the new data fetched instead of the success state, this in order to make the new data received for creative purposes
 - The tracing commands of response were re-arranged and called by `Sys.printLn()` instead of `trace()` (Thanks @EyeDaleHim for the suggestion)
 
 ## V1.1
