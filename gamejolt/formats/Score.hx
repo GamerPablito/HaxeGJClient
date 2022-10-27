@@ -17,8 +17,8 @@ typedef Score =
     score:String,
     sort:Int,
     extra_data:String,
-    user:String,
-    user_id:Int,
+    ?user:String,
+    ?user_id:Int,
     ?guest:String,
     ?stored:String,
     ?stored_timestamp:Int
