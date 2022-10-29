@@ -17,8 +17,8 @@ Hope this custom tool would come in handy to you :)
 - Includes `haxe` libraries like:
   - `Http` (used to track info from the GameJolt API)
   - `Json` (used to cast specific information formats from the fetched data)
-  - `crypto.Md5` (used to encript a special signature to access the API in a safe way)
-  - `crypto.Sha1` (it's an alternative for `crypto.Md5`, works the same)
+  - `Md5` (used to encript a special signature to access the API in a safe way)
+  - `Sha1` (it's an alternative for `crypto.Md5`, works the same)
 - This client is totally independient, it doesn't requires any extra GameJolt libraries to work, cuz everything is written and composed here
 - This also contains some files with info formats about how some data has to be received like, this in order to let the user know how to use the data in their game
 - Has many extra features that can be fetched instantly without you have to code a lot for them
@@ -78,4 +78,4 @@ You can also check out my [Youtube Channel](https://www.youtube.com/channel/UCpa
 where I'll be uploading everything related to this project and more stuff :)
 
 ## Special Thanks
-- [@EyeDaleHim](https://github.com/EyeDaleHim) : For suggest me about a better command for printing responses
+- [EyeDaleHim](https://github.com/EyeDaleHim) : For suggest me about a better command for printing responses
