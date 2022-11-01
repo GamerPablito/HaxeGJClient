@@ -117,11 +117,23 @@ class GJClient
 
         if (urlData != null)
         {
-            daUser = urlData.users[0].developer_name;
-            daFormat = cast urlData.users[0];
-            printMsg('$daUser\'s data fetched sucessfully!');
+            if (urlData.users[0] != null)
+            {
+                daUser = urlData.users[0].developer_name;
+                daFormat = cast urlData.users[0];
+                printMsg('$daUser\'s data fetched sucessfully!');
+            }
+            else
+            {
+                printMsg('Data fetching of the user $id failed!');
+                if (onFail != null) onFail();
+            }
         }
-        else if (onFail != null) onFail();
+        else
+        {
+            printMsg('Data fetching of the user $id failed!');
+            if (onFail != null) onFail();
+        }
 
         return daFormat;
     }
@@ -147,8 +159,12 @@ class GJClient
             for (person in fetchedFriends)
             {
                 var daFriend:Null<User> = getUserData(person.friend_id);
-                if (daFriend != null) friendList.push(daFriend);
-                printMsg('Fetched Friend: ${daFriend.developer_name} (@${daFriend.username})');
+                
+                if (daFriend != null)
+                {
+                    friendList.push(daFriend);
+                    printMsg('Fetched Friend: ${daFriend.developer_name} (@${daFriend.username})');
+                }
             }
 
             printMsg('Friends list fetched correctly!');
