@@ -155,17 +155,15 @@ class GJClient
 
         if (fetchedFriends != null && logged)
         {
-            for (person in fetchedFriends)
-            {
                 var daID = person.friend_id;
-                var daFriend:Null<User> = getUserData(person.friend_id);
+                var daFriend:Null<User> = getUserData(daID);
                 
                 if (daFriend != null)
                 {
                     friendList.push(daFriend);
                     printMsg('Fetched Friend: ${daFriend.developer_name} (@${daFriend.username})');
                 }
-                else printMsg('Falied to fetch friend (ID: ${person.friend_id}')
+                else printMsg('Failed to fetch friend (ID: ${daID})');
             }
 
             printMsg('Friends list fetched correctly!');
