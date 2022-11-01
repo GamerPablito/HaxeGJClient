@@ -1,12 +1,13 @@
 # GameJolt Client Changelog
 
 ## V1.3
+- Friend list command implanted
 - The URL Construction no longer contains the useless return variables for functions (success:Bool and error:String), they've been quitted cuz there's no use for them
 - Some functions that make actions using any of the formats created will return respective data with a "Dynamic -> Void" function according the format for the action, this is for creative purposes
-- The `getUserInfo()` function was repaired successfully
+- The `getUserInfo()` function was repaired and modified successfully, this in order to be adapted to the new friend list command
 - Instructions for many commands have been polished and updated with the changes mentioned above
 - Some params in the [Score](gamejolt/formats/Score.hx) format were signalized as null, this in order to get the information that's really needed for the new functions arrange
-- New commands to detect if there's no data to fetch (game or user).
+- New commands to detect if there's no data to fetch (game or user)
 - New console printing system for commands (`printMsg()`)
 - Many issues were repaired
 
