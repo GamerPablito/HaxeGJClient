@@ -151,14 +151,18 @@ class GJClient
     {
         var urlData = urlResult(urlConstruct('friends'), null, onFail);
         var friendList:Array<User> = [];
-        var fetchedFriends:Null<Array<Dynamic>> = urlData.friends;
+        var fetchedFriends:Null<Array<Dynamic>> = null;
+
+        if (urlData != null) fetchedFriends = urlData.friends;
 
         if (fetchedFriends != null && logged)
         {
-                var daID = person.friend_id;
+            for (person in fetchedFriends)
+            {
+                var daID:Null<Int> = person.friend_id;
                 var daFriend:Null<User> = getUserData(daID);
                 
-                if (daFriend != null)
+                if (daFriend != null && daID != null)
                 {
                     friendList.push(daFriend);
                     printMsg('Fetched Friend: ${daFriend.developer_name} (@${daFriend.username})');
