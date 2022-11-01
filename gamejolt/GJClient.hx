@@ -150,14 +150,14 @@ class GJClient
     public static function getFriendsList(?onSuccess:() -> Void, ?onFail:() -> Void):Null<Array<User>>
     {
         var urlData = urlResult(urlConstruct('friends'), null, onFail);
+        var friendList:Array<User> = [];
+        var fetchedFriends:Null<Array<Dynamic>> = urlData.friends;
 
-        if (urlData != null && logged)
+        if (fetchedFriends != null && logged)
         {
-            var friendList:Array<User> = [];
-            var fetchedFriends:Array<Dynamic> = urlData.friends;
-            
             for (person in fetchedFriends)
             {
+                var daID = person.friend_id;
                 var daFriend:Null<User> = getUserData(person.friend_id);
                 
                 if (daFriend != null)
@@ -165,6 +165,7 @@ class GJClient
                     friendList.push(daFriend);
                     printMsg('Fetched Friend: ${daFriend.developer_name} (@${daFriend.username})');
                 }
+                else printMsg('Falied to fetch friend (ID: ${person.friend_id}')
             }
 
             printMsg('Friends list fetched correctly!');
