@@ -2,7 +2,8 @@
 
 ## V1.3
 - The URL Construction no longer contains the useless return variables for functions (success:Bool and error:String), they've been quitted cuz there's no use for them
-- Some functions that make actions using any of the formats created will return respective data with a "Dynamic -> Void" function according the format for the actiom, this is for creative purposes
+- Some functions that make actions using any of the formats created will return respective data with a "Dynamic -> Void" function according the format for the action, this is for creative purposes
+- The `getUserInfo()` function was repaired successfully
 - Instructions for many commands have been polished and updated with the changes mentioned above
 - Some params in the [Score](gamejolt/formats/Score.hx) format were signalized as null, this in order to get the information that's really needed for the new functions arrange
 - New commands to detect if there's no data to fetch (game or user).
