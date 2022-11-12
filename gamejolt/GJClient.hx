@@ -159,10 +159,10 @@ class GJClient
         {
             for (person in fetchedFriends)
             {
-                var daID:Null<Int> = person.friend_id;
+                var daID:Int = person.friend_id;
                 var daFriend:Null<User> = getUserData(daID);
                 
-                if (daFriend != null && daID != null)
+                if (daFriend != null)
                 {
                     friendList.push(daFriend);
                     printMsg('Fetched Friend: ${daFriend.developer_name} (@${daFriend.username})');
