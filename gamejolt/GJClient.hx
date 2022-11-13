@@ -17,8 +17,9 @@ import haxe.crypto.Sha1;
  */
 class GJClient
 {
-    // Private vars
-    static var printPrefix:String = "GameJolt Client:"; // Command Prefix
+    static var printPrefix:String = "GameJolt Client:";
+    public static function hasLoginInfo():Bool {return getUser() != null && getToken() != null;}
+    public static function hasGameInfo():Bool {return GJKeys.id != 0 && GJKeys.key != '';}
 
     /*
         ----------------------------------------------------------------
@@ -550,10 +551,6 @@ class GJClient
     // INTERNAL FUNCTIONS (DON'T ALTER IF YOU DON'T KNOW WHAT YOU'RE DOING!!)
 
     static var noDataWarned:Bool = false;
-
-    static function hasLoginInfo():Bool {return getUser() != null && getToken() != null;}
-
-    static function hasGameInfo():Bool {return GJKeys.id != 0 && GJKeys.key != '';}
 
     static function printMsg(message:String) {Sys.println(printPrefix + ' ' + message);}
 
