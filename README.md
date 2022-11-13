@@ -13,6 +13,8 @@ using less space and complexity for a better performance (and by that I mean
 it can be useful for computers with a very slow processing speed)
 Hope this custom tool would come in handy to you :)
 
+### This & [TentaRJ's](https://github.com/TentaRJ/GameJolt-FNF-Integration) gamejolt integration are NOT the same, they're both different in their own ways, don't get confused for one another
+
 ## Special Features
 - Includes `haxe` libraries like:
   - `Http` (used to track info from the GameJolt API)
