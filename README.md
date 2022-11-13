@@ -20,7 +20,7 @@ Hope this custom tool would come in handy to you :)
   - `Http` (used to track info from the GameJolt API)
   - `Json` (used to cast specific information formats from the fetched data)
   - `Md5` (used to encript a special signature to access the API in a safe way)
-  - `Sha1` (it's an alternative for `crypto.Md5`, works the same)
+  - `Sha1` (it's an alternative for `Md5`, works the same)
 - This client is totally independient, it doesn't requires any extra GameJolt libraries to work, cuz everything is written and composed here
 - This also contains some files with info formats about how some data has to be received like, this in order to let the user know how to use the data in their game
 - Has many extra features that can be fetched instantly without you have to code a lot for them
@@ -50,27 +50,32 @@ art/build_x32-officialrelease.bat
 art/build_x64-officialrelease.bat
 art/test_x64-debug-officialrelease.bat
 
+## This is the file to add
 source/gamejolt/GJKeys.hx
 ```
 
-Note: Every time you insert a command from this in some part of your game, make sure its limited by the .xml conditional: "if desktop", cuz this client is made for computers only. Example:
-  ```
-  #if desktop
-  import gamejolt.GJClient;
-  #end
+5.Go to the `project.xml` file and add the following line (this in order to make the GJ-related stuff you make in the mod to be toggled):
+
+`<define name="GAMEJOLT_ALLOWED if="desktop" unless="ACHIEVEMENTS_ALLOWED">`
+
+6. Every time you insert a command from this in some part of your game, make sure its limited by the .xml conditional: `#if GAMEJOLT_ALLOWED ... #end` (cuz this client is made for computers only, and without the `ACHIEVEMTS_ALLOWED` stuff in its way). Example:
+```
+#if GAMEJOLT_ALLOWED
+import gamejolt.GJClient;
+#end
   
-  class Example extends FlxUIState
+class Example extends FlxUIState
+{
+  override function create()
   {
-    override function create()
-    {
-      super.create();
-      
-      #if desktop
-      GJClient.initialize();
-      #end
-    }
+    super.create();
+
+    #if GAMEJOLT_ALLOWED
+    GJClient.initialize();
+    #end
   }
-  ```
+}
+```
 
 ## Still have doubts about its use?
 If you're still have questions about how to use this client correctly,
@@ -81,3 +86,4 @@ where I'll be uploading everything related to this project and more stuff :)
 
 ## Special Thanks
 - [EyeDaleHim](https://github.com/EyeDaleHim) : For suggest me about a better command for printing responses
+- [MemeHoovy](https://github.com/MemeHoovy) : For giving me a hand with clarification between this GameJolt Support and the one made for [TentaRJ](https://github.com/TentaRJ/GameJolt-FNF-Integration)
