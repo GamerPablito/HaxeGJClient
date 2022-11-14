@@ -31,7 +31,7 @@ Hope this custom tool would come in handy to you :)
 2. Copy the `gamejolt` folder into the `source` folder of your game
 3. Once copied, you must create a `GJKeys.hx` file into the `gamejolt` folder, where you'll put the Game GJ Data for the client, this will remain with yourself in order to avoid hackers.
 Here's a template:
-```
+```hx
 package gamejolt;
 
 class GJKeys
@@ -42,7 +42,7 @@ class GJKeys
 ```
 4. When you're about to upload the source code to GitHub, you must go first to the `.gitignore` file, this is where the ignored files are specified to GitHub for don't include them in commits, if you don't have one so create one, then add the directory of the `GJKeys.hx` file to it (this to make GitHub to don't upload that file).
 Example:
-```
+```gitignore
 export/
 .vscode/
 APIStuff.hx
@@ -56,10 +56,12 @@ source/gamejolt/GJKeys.hx
 
 5.Go to the `project.xml` file and add the following line (this in order to make the GJ-related stuff you make in the mod to be toggled):
 
-`<define name="GAMEJOLT_ALLOWED if="desktop" unless="ACHIEVEMENTS_ALLOWED">`
-
-6. Every time you insert a command from this in some part of your game, make sure its limited by the .xml conditional: `#if GAMEJOLT_ALLOWED ... #end` (cuz this client is made for computers only, and without the `ACHIEVEMTS_ALLOWED` stuff in its way). Example:
+```xml
+<define name="GAMEJOLT_ALLOWED if="desktop" unless="ACHIEVEMENTS_ALLOWED">
 ```
+
+6. Every time you insert a command from this in some part of your game, make sure its limited by the .xml conditional: `#if GAMEJOLT_ALLOWED ... #end` (cuz this client is made for computers only, and without the `ACHIEVEMTS_ALLOWED` stuff getting in its way). Example:
+```hx
 #if GAMEJOLT_ALLOWED
 import gamejolt.GJClient;
 #end
