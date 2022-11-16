@@ -1,6 +1,7 @@
 package gamejolt;
 
 import flixel.FlxG;
+import flixel.util.FlxTimer;
 import gamejolt.formats.*;
 import haxe.Http;
 import haxe.Json;
@@ -99,7 +100,13 @@ class GJClient
     {
         var urlData = urlResult(urlConstruct('users', 'auth'),
         function () {printMsg('User authenticated successfully!'); if (onSuccess != null) onSuccess();},
-        function () {printMsg('User authentication failed!'); if (onFail != null) onFail();});
+        function ()
+        {
+            printMsg('User authentication failed!');
+            setUserInfo(null, null);
+            noDataWarned = false;
+            if (onFail != null) onFail();
+        });
         if (urlData != null) urlData; else return;
     }
 
@@ -406,7 +413,7 @@ class GJClient
     {
         var daTempScore = getScoresList(true, table_id, null, null, null, 1);
 
-        if (logged && daTempScore != null)
+        if (logged && daTempScore.length == 0)
         {
             var daParams = [['sort', Std.string(daTempScore[0].sort)]];
             if (table_id != null) daParams.push(['table_id', Std.string(table_id)]);
@@ -480,30 +487,35 @@ class GJClient
     /**
      * If there's a session active, this function keeps the session active, so it needs to be placed in somewhere it can be executed repeatedly.
      * 
+     * @param interval The time in seconds of the ping intervals (Default: 15)
      * @param onPing Put a function with actions here, they'll be processed every time a ping is made successfully.
      * @param onFail Put a function with actions here, they'll be processed if an error has ocurred during the process.  
      */
-    public static function pingSession(?onPing:() -> Void, ?onFail:() -> Void)
+    public static function pingSession(interval:Int = 15, ?onPing:() -> Void, ?onFail:() -> Void)
     {
-        var urlData = urlResult(urlConstruct('sessions', 'ping'),
-        function ()
+        if (logged && pingCompleted)
         {
-            if (logged)
+            pingCompleted = false;
+
+            new FlxTimer().start(interval, function (tmr:FlxTimer)
             {
-                printMsg('Session pinged!');
-                if (onPing != null) onPing();
-            }
-        },
-        function ()
-        {
-            if (logged)
-            {
-                printMsg('Ping failed! You\'ve been disconnected!');
-                if (onFail != null) onFail();
-            }
-            logged = false;
-        });
-        if (logged && urlData != null) urlData; else return;
+                var urlData = urlResult(urlConstruct('sessions', 'ping'),
+                function ()
+                {
+                    printMsg('Session pinged!');
+                    if (onPing != null) onPing();
+                },
+                function ()
+                {
+                    printMsg('Ping failed! You\'ve been disconnected!');
+                    if (onFail != null) onFail();
+                    logged = false;
+                });
+                if (urlData != null) urlData;
+            
+                pingCompleted = true;
+            });
+        }
     }
 
     /**
@@ -528,6 +540,8 @@ class GJClient
 
     // INTERNAL FUNCTIONS (DON'T ALTER IF YOU DON'T KNOW WHAT YOU'RE DOING!!)
 
+    static var pingCompleted:Bool = true;
+
     static var noDataWarned:Bool = false;
 
     static function printMsg(message:String) {Sys.println('$printPrefix $message');}
@@ -539,7 +553,7 @@ class GJClient
             var mainURL:String = "http://api.gamejolt.com/api/game/v1_2/";
 
             mainURL += command;
-            mainURL += '/' + (action != null ? '$action/?' : '?');    
+            mainURL += '/' + (action != null ? '$action/' : '') + '?';    
             mainURL += 'game_id=${Std.string(GJKeys.id)}'; // Private Thingie (Fuck you hackers lmao)
 
             if (userAllowed) mainURL += '&username=${getUser()}';
@@ -555,14 +569,14 @@ class GJClient
         }
 
         if (!hasGameInfo() && !noDataWarned) {printMsg('Game data was not provided!'); noDataWarned = true;}
-        if (!hasLoginInfo() && !noDataWarned) {printMsg('User data was not provided!'); noDataWarned = true;}
+        if (!hasLoginInfo() && !noDataWarned) {printMsg('User data was not provided for the command $command' + (action == null ? '' : '/$action') + ' !'); noDataWarned = true;}
 
         return null;
     }
 
     static function urlResult(daUrl:Null<Http>, ?onSuccess:() -> Void, ?onFail:() -> Void):Null<Dynamic>
     {
-        var result:Dynamic;
+        var result:Dynamic = '';
         var success:Bool = false;
 
         if (daUrl != null)
