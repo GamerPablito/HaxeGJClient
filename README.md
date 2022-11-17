@@ -57,7 +57,7 @@ source/gamejolt/GJKeys.hx
 5.Go to the `project.xml` file and add the following line (this in order to make the GJ-related stuff you make in the mod to be toggled):
 
 ```xml
-<define name="GAMEJOLT_ALLOWED if="desktop" unless="ACHIEVEMENTS_ALLOWED">
+<define name="GAMEJOLT_ALLOWED" if="desktop" unless="ACHIEVEMENTS_ALLOWED">
 ```
 
 6. Every time you insert a command from this in some part of your game, make sure its limited by the .xml conditional: `#if GAMEJOLT_ALLOWED ... #end` (cuz this client is made for computers only, and without the `ACHIEVEMTS_ALLOWED` stuff getting in its way). Example:
@@ -88,4 +88,4 @@ where I'll be uploading everything related to this project and more stuff :)
 
 ## Special Thanks
 - [EyeDaleHim](https://github.com/EyeDaleHim) : For suggest me about a better command for printing responses
-- [MemeHoovy](https://github.com/MemeHoovy) : For giving me a hand with clarification between this GameJolt Support and the one made for [TentaRJ](https://github.com/TentaRJ/GameJolt-FNF-Integration)
+- [MemeHoovy](https://github.com/MemeHoovy) : For giving me a hand with clarification between this GameJolt Support and the one made by [TentaRJ and Co.](https://github.com/TentaRJ/GameJolt-FNF-Integration)
