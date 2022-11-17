@@ -160,7 +160,7 @@ class GJClient
      * @param onFail Put a function with actions here, they'll be processed if an error has ocurred during the process.
      * @return The long list of every friend's data.
      */
-    public static function getFriendsList(?onSuccess:() -> Void, ?onFail:() -> Void):Array<User>
+    public static function getFriendsList(?onSuccess:() -> Void, ?onFail:() -> Void):Null<Array<User>>
     {
         var urlData = urlResult(urlConstruct('friends'), null, onFail);
         var friendList:Array<User> = [];
@@ -193,7 +193,7 @@ class GJClient
             if (onFail != null) onFail();
         }
 
-        return [];
+        return null;
     }
 
     /**
@@ -207,19 +207,19 @@ class GJClient
      * @param achievedOnes  Whether you want the list to be only with achieved trophies or unachived trophies.
      *                        Leave blank if you want to see all the trophies no matter if they're achieved or not.
      *                        If your game doesn't have any trophies in its GameJolt page,
-     *                        or doesn't appear according to what you choose in this variable, the result will be an empty array.
+     *                        or doesn't appear according to what you choose in this variable, the result will be `null`.
      * @param onSuccess     Put a function with actions here, they'll be processed if the process finish successfully.
      * @param onFail         Put a function with actions here, they'll be processed if an error has ocurred during the process.
      * @return The array with all the Trophies of the game in .json format
-     *          (returns an empty array if there are no Trophies in the game to fetch or if there's no GUI inserted in the application yet).
+     *          (returns `null` if there are no Trophies in the game to fetch or if there's no GUI inserted in the application yet).
      */
-    public static function getTrophiesList(?achievedOnes:Bool, ?onSuccess:() -> Void, ?onFail:() -> Void):Array<Trophie>
+    public static function getTrophiesList(?achievedOnes:Bool, ?onSuccess:() -> Void, ?onFail:() -> Void):Null<Array<Trophie>>
     {
         var daParam:Null<Array<Array<String>>> = achievedOnes != null ? [['achieved', Std.string(achievedOnes)]] : null;
         var urlData = urlResult(urlConstruct('trophies', null, daParam),
         function () {printMsg('Trophies list fetched successfully!'); if (onSuccess != null) onSuccess();},
         function () {printMsg('Trophies list fetching failed!'); if (onFail != null) onFail();});
-        var daFormat:Array<Trophie> = urlData != null && logged ? urlData.trophies : [];
+        var daFormat:Null<Array<Trophie>> = urlData != null && logged ? urlData.trophies : null;
         return daFormat;
     }
 
@@ -237,7 +237,7 @@ class GJClient
     {
         var daList = getTrophiesList();
 
-        if (logged)
+        if (logged && daList != null)
         {
             var urlData = urlResult(urlConstruct('trophies', 'add-achieved', [['trophy_id', Std.string(id)]]),
             function ()
@@ -279,7 +279,7 @@ class GJClient
     {
         var daList = getTrophiesList();
 
-        if (logged)
+        if (logged && daList != null)
         {
             var urlData = urlResult(urlConstruct('trophies', 'remove-achieved', [['trophy_id', Std.string(id)]]),
             function ()
@@ -326,7 +326,7 @@ class GJClient
      * @return The array with all the Scores of the game in .json format from the settled score Table ID
      *          (return `null` if there are no Scores in the game to fetch or if there's no GUI inserted in the application yet).
      */
-    public static function getScoresList(fromUser:Bool, ?table_id:Int, ?delimiter:Int, ?onSuccess:() -> Void, ?onFail:() -> Void, limit:Int = 10):Array<Score>
+    public static function getScoresList(fromUser:Bool, ?table_id:Int, ?delimiter:Int, ?onSuccess:() -> Void, ?onFail:() -> Void, limit:Int = 10):Null<Array<Score>>
     {
         var daParams:Array<Array<String>> = [];
 
@@ -349,7 +349,7 @@ class GJClient
             printMsg('Scores list from the ${table_id == null ? 'Principal Score Table' : 'Table ID:' + Std.string(table_id)} fetching failed');
             if (onFail != null) onFail();
         });
-        var daFormat:Array<Score> = urlData != null && logged ? urlData.scores : [];
+        var daFormat:Null<Array<Score>> = urlData != null && logged ? urlData.scores : null;
         return daFormat;
     }
 
@@ -413,7 +413,7 @@ class GJClient
     {
         var daTempScore = getScoresList(true, table_id, null, null, null, 1);
 
-        if (logged && daTempScore.length == 0)
+        if (logged && daTempScore != null)
         {
             var daParams = [['sort', Std.string(daTempScore[0].sort)]];
             if (table_id != null) daParams.push(['table_id', Std.string(table_id)]);

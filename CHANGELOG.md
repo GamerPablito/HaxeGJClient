@@ -1,12 +1,10 @@
 # GameJolt Client Changelog
 
 ## V1.4
-- Some null references were replaced by empty arrays instead (for some functions)
 - Removed `checkSessionActive()` function
 - Removed Auto-Login stuff
 - URL Construction was improved to throw data and errors correctly
 - Functions `hasLoginInfo()` and `hasGameInfo()` are now public for their use in-game
-- Friend List function was improved (Null references deleted)
 - The [README](README.md) file now includes better explanations about its use (info and example coding lines)
 
 ## V1.3
