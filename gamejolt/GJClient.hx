@@ -48,6 +48,11 @@ class GJClient
      * If `true`, the functions will use `Md5` encriptation for data processing; if `false`, they'll use `Sha1` encriptation instead.
      */
     public static var useMd5:Bool = true;
+    
+    /**
+     * This works as a signal to activate or deactivate `pingSession()` intervals. Pretty useful when you change between states.
+     */
+    public static var pingTriggered:Bool = true;
 
     /**
      * Sets a new GUI in the database, the Username and the Game Token of the player respectively.
@@ -493,9 +498,9 @@ class GJClient
      */
     public static function pingSession(interval:Int = 15, ?onPing:() -> Void, ?onFail:() -> Void)
     {
-        if (logged && pingCompleted)
+        if (logged && pingTriggered)
         {
-            pingCompleted = false;
+            pingTriggered = false;
 
             new FlxTimer().start(interval, function (tmr:FlxTimer)
             {
@@ -513,7 +518,7 @@ class GJClient
                 });
                 if (urlData != null) urlData;
             
-                pingCompleted = true;
+                pingTriggered = true;
             });
         }
     }
@@ -539,8 +544,6 @@ class GJClient
     }
 
     // INTERNAL FUNCTIONS (DON'T ALTER IF YOU DON'T KNOW WHAT YOU'RE DOING!!)
-
-    static var pingCompleted:Bool = true;
 
     static var noDataWarned:Bool = false;
 
