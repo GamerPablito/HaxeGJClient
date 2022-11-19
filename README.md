@@ -57,7 +57,7 @@ source/gamejolt/GJKeys.hx
 5.Go to the `project.xml` file and add the following line (this in order to make the GJ-related stuff you make in the mod to be toggled):
 
 ```xml
-<define name="GAMEJOLT_ALLOWED" if="desktop" unless="ACHIEVEMENTS_ALLOWED">
+<define name="GAMEJOLT_ALLOWED" if="desktop" unless="ACHIEVEMENTS_ALLOWED" />
 ```
 
 6. Every time you insert a command from this in some part of your game, make sure its limited by the .xml conditional: `#if GAMEJOLT_ALLOWED ... #end` (cuz this client is made for computers only, and without the `ACHIEVEMTS_ALLOWED` stuff getting in its way). Example:
