@@ -1,7 +1,6 @@
 package gamejolt;
 
 import flixel.FlxG;
-import flixel.util.FlxTimer;
 import gamejolt.formats.*;
 import haxe.Http;
 import haxe.Json;
@@ -48,11 +47,6 @@ class GJClient
      * If `true`, the functions will use `Md5` encriptation for data processing; if `false`, they'll use `Sha1` encriptation instead.
      */
     public static var useMd5:Bool = true;
-    
-    /**
-     * This works as a signal to activate or deactivate `pingSession()` intervals. Pretty useful when you change between states.
-     */
-    public static var pingTriggered:Bool = true;
 
     /**
      * Sets a new GUI in the database, the Username and the Game Token of the player respectively.
@@ -492,34 +486,26 @@ class GJClient
     /**
      * If there's a session active, this function keeps the session active, so it needs to be placed in somewhere it can be executed repeatedly.
      * 
-     * @param interval The time in seconds of the ping intervals (Default: 15)
      * @param onPing Put a function with actions here, they'll be processed every time a ping is made successfully.
      * @param onFail Put a function with actions here, they'll be processed if an error has ocurred during the process.  
      */
-    public static function pingSession(interval:Int = 15, ?onPing:() -> Void, ?onFail:() -> Void)
+    public static function pingSession(?onPing:() -> Void, ?onFail:() -> Void)
     {
-        if (logged && pingTriggered)
+        if (logged)
         {
-            pingTriggered = false;
-
-            new FlxTimer().start(interval, function (tmr:FlxTimer)
+            var urlData = urlResult(urlConstruct('sessions', 'ping'),
+            function ()
             {
-                var urlData = urlResult(urlConstruct('sessions', 'ping'),
-                function ()
-                {
-                    printMsg('Session pinged!');
-                    if (onPing != null) onPing();
-                },
-                function ()
-                {
-                    printMsg('Ping failed! You\'ve been disconnected!');
-                    if (onFail != null) onFail();
-                    logged = false;
-                });
-                if (urlData != null) urlData;
-            
-                pingTriggered = true;
+                printMsg('Session pinged!');
+                if (onPing != null) onPing();
+            },
+            function ()
+            {
+                printMsg('Ping failed! You\'ve been disconnected!');
+                if (onFail != null) onFail();
+                logged = false;
             });
+            if (urlData != null) urlData;
         }
     }
 

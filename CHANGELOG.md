@@ -4,7 +4,7 @@
 - Removed `checkSessionActive()` function
 - Removed Auto-Login stuff
 - URL Construction was improved to throw data and errors correctly
-- The function `pingSession()` was improved and fixed successfully. Now it contains a manual trigger in order to don't make it loose focus when changing states!
+- The function `pingSession()` was improved and fixed successfully.
 - Functions `hasLoginInfo()` and `hasGameInfo()` are now public for their use in-game
 - The [README](README.md) file now includes better explanations about its use (info and example coding lines)
 
