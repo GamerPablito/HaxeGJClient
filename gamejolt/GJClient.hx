@@ -7,8 +7,6 @@ import haxe.Json;
 import haxe.crypto.Md5;
 import haxe.crypto.Sha1;
 
-using StringTools;
-
 /**
  * A completely original GameJolt Client made by GamerPablito, using Haxe Crypto Encripting and Http tools
  * to gather info about the GameJolt API with ease.
@@ -533,8 +531,6 @@ class GJClient
 
     // INTERNAL FUNCTIONS (DON'T ALTER IF YOU DON'T KNOW WHAT YOU'RE DOING!!)
 
-    static var curCommand:String = '';
-
     static var noDataWarned:Bool = false;
 
     static function printMsg(message:String) {Sys.println('$printPrefix $message');}
@@ -545,10 +541,9 @@ class GJClient
         {
             var mainURL:String = "http://api.gamejolt.com/api/game/v1_2/";
 
-            curCommand = '$command${action != null ? '/$action' : ''}';
-
-            mainURL += curCommand;
-            mainURL += '/?game_id=${Std.string(GJKeys.id)}'; // Private Thingie (Fuck you hackers lmao)
+            mainURL += command;
+            mainURL += '/' + (action != null ? '$action/' : '') + '?';    
+            mainURL += 'game_id=${Std.string(GJKeys.id)}'; // Private Thingie (Fuck you hackers lmao)
 
             if (userAllowed) mainURL += '&username=${getUser()}';
             if (tokenAllowed) mainURL += '&user_token=${getToken()}';
@@ -562,11 +557,8 @@ class GJClient
             return new Http(mainURL);
         }
 
-        if (!noDataWarned)
-        {
-            if (!hasGameInfo()) {printMsg('Game data was not provided!'); noDataWarned = true;}
-            else if (!hasLoginInfo()) {printMsg('User data was not provided for the command "$curCommand"'); noDataWarned = true;}
-        }
+        if (!hasGameInfo() && !noDataWarned) {printMsg('Game data was not provided!'); noDataWarned = true;}
+        if (!hasLoginInfo() && !noDataWarned) {printMsg('User data was not provided for the command $command' + (action == null ? '' : '/$action') + ' !'); noDataWarned = true;}
 
         return null;
     }
