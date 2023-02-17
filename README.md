@@ -88,4 +88,4 @@ where I'll be uploading everything related to this project and more stuff :)
 
 ## Special Thanks
 - [EyeDaleHim](https://github.com/EyeDaleHim) : For suggest me about a better command for printing responses
-- [MemeHoovy](https://github.com/MemeHoovy) : For giving me a hand with clarification between this GameJolt Support and the one made by [TentaRJ and Co.](https://github.com/TentaRJ/GameJolt-FNF-Integration)
+- [MemeHoovy](https://github.com/MemeHovy) : For giving me a hand with clarification between this GameJolt Support and the one made by [TentaRJ and Co.](https://github.com/TentaRJ/GameJolt-FNF-Integration)
