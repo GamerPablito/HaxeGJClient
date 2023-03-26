@@ -35,7 +35,7 @@ You must do the same steps from before, then go to the `project.xml` file and ad
 <define name="GAMEJOLT_ALLOWED" if="desktop" unless="ACHIEVEMENTS_ALLOWED" />
 ```
 
-With that on mind, every time you insert a command from this in some part of your game, make sure its limited by the .xml conditional: `#if GAMEJOLT_ALLOWED ... #end` (cuz this client is made for computers only, and without the `ACHIEVEMTS_ALLOWED` stuff getting in its way).
+With that on mind, every time you insert a command from this in some part of your game, make sure its limited by the .xml conditional: `#if GAMEJOLT_ALLOWED ... #end` (cuz this client is made for computers only, and without the `ACHIEVEMENTS_ALLOWED` stuff getting in its way).
 Example:
 ```haxe
 #if GAMEJOLT_ALLOWED
