@@ -4,6 +4,10 @@
 - PFP Images for Users are now supported through some OpenFL tools (check `userGraphics` variable for more info)
 - The `logged` variable can now be auto-updated every time it's used, so you can check your login state in real-time
 - Now parameters (internal ones) are callable by a Map of Strings instead of an Array of String Arrays
+- The `showMessages` variable is now set to false by default
+- Deleted excessive messages for the console to print
+- The `authUser()` function is now private cuz there's no functionality using it for other stuff, since it's only available for the current logged in user
+
 
 ## V1.5
 - Code re-arrangement with the help of the `.vscode` files
