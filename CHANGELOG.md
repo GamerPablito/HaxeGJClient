@@ -1,5 +1,10 @@
 # Haxe GameJolt Client Changelog
 
+## V1.6
+- PFP Images for Users are now supported through some OpenFL tools (check `userGraphics` variable for more info)
+- The `logged` variable can now be auto-updated every time it's used, so you can check your login state in real-time
+- Now parameters (internal ones) are callable by a Map of Strings instead of an Array of String Arrays
+
 ## V1.5
 - Code re-arrangement with the help of the `.vscode` files
 - Instructions in README file were finally fixed out

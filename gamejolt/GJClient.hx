@@ -1,10 +1,13 @@
 package gamejolt;
 
 import flixel.FlxG;
+import flixel.graphics.FlxGraphic;
 import haxe.Http;
 import haxe.Json;
 import haxe.crypto.Md5;
 import haxe.crypto.Sha1;
+import openfl.display.BitmapData;
+import openfl.utils.Future;
 
 using StringTools;
 
@@ -97,8 +100,6 @@ class GJClient {
 		--> EVERY COMMAND HERE WILL WORK ONLY IF GUI PARAMETERS EXIST!! <--
 		----------------------------------------------------------------
 	 */
-	static var printPrefix:String = "GJClient:";
-
 	/**
 	 * Tells you if some GUI already exists in the game app or not.
 	 * @return Is it available?
@@ -116,12 +117,18 @@ class GJClient {
 	/**
 	 * Whether you're actually logged in or not.
 	 */
-	public static var logged(default, null):Bool = false;
+	public static var logged(get, never):Bool;
+
+	/**
+	 * A list of graphics loaded from other "User-data-fetching" functions.
+	 * They're all clasified by User ID.
+	 */
+	public static var userGraphics:Map<Int, FlxGraphic> = [];
 
 	/**
 	 * Whether you want the client to show you help messages in the compiling console or not
 	 */
-	public static var showMessages:Bool = true;
+	public static var showMessages:Bool = false;
 
 	/**
 	 * If `true`, the functions will use `Md5` encriptation for data processing; if `false`, they'll use `Sha1` encriptation instead.
@@ -167,28 +174,6 @@ class GJClient {
 	}
 
 	/**
-	 * Run this command to make sure if the actual GUI inserted about a user really exists in GameJolt.
-	 * 
-	 * @param onSuccess Put a function with actions here, they'll be processed if the process finish successfully.
-	 * @param onFail Put a function with actions here, they'll be processed if an error has ocurred during the process.
-	 */
-	public static function authUser(?onSuccess:() -> Void, ?onFail:() -> Void) {
-		var urlData = urlResult(urlConstruct('users', 'auth'), function() {
-			printMsg('User authenticated successfully!');
-			if (onSuccess != null)
-				onSuccess();
-		}, function() {
-			printMsg('User authentication failed!');
-			setUserInfo(null, null);
-			noDataWarned = false;
-			if (onFail != null)
-				onFail();
-		});
-		if (urlData != null)
-			urlData;
-	}
-
-	/**
 	 * This function fetches the information of any user in GameJolt, according to the ID inserted.
 	 * 
 	 * @see The `formats` folder, to get more info about how formats are setted like.
@@ -201,12 +186,13 @@ class GJClient {
 	public static function getUserData(?id:Int, ?onSuccess:() -> Void, ?onFail:() -> Void):Null<User> {
 		var daFormat:Null<User> = null;
 
-		var daParam:Null<Array<Array<String>>> = id != null ? [['user_id', Std.string(id)]] : null;
+		var daParam:Null<Map<String, String>> = id != null ? ['user_id' => Std.string(id)] : null;
 		var urlData = urlResult(urlConstruct('users', null, daParam, id == null, false), onSuccess);
 
 		if (urlData != null) {
 			if (urlData.users[0] != null) {
 				daFormat = cast urlData.users[0];
+				getImage(daFormat.id, daFormat.avatar_url);
 				printMsg('${urlData.users[0].developer_name}\'s data fetched sucessfully!');
 			} else {
 				printMsg('Data fetching of the user (ID: $id) failed!');
@@ -282,7 +268,7 @@ class GJClient {
 	 *          (returns `null` if there are no Trophies in the game to fetch or if there's no GUI inserted in the application yet).
 	 */
 	public static function getTrophiesList(?achievedOnes:Bool, ?onSuccess:() -> Void, ?onFail:() -> Void):Null<Array<Trophy>> {
-		var daParam:Null<Array<Array<String>>> = achievedOnes != null ? [['achieved', Std.string(achievedOnes)]] : null;
+		var daParam:Null<Map<String, String>> = achievedOnes != null ? ['achieved' => Std.string(achievedOnes)] : null;
 		var urlData = urlResult(urlConstruct('trophies', null, daParam), function() {
 			printMsg('Trophies list fetched successfully!');
 			if (onSuccess != null)
@@ -310,7 +296,7 @@ class GJClient {
 		var daList = getTrophiesList();
 
 		if (logged && daList != null) {
-			var urlData = urlResult(urlConstruct('trophies', 'add-achieved', [['trophy_id', Std.string(id)]]), function() {
+			var urlData = urlResult(urlConstruct('trophies', 'add-achieved', ['trophy_id' => Std.string(id)]), function() {
 				for (troph in daList) {
 					if (troph.id == id) {
 						if (troph.achieved == false) {
@@ -346,7 +332,7 @@ class GJClient {
 		var daList = getTrophiesList();
 
 		if (logged && daList != null) {
-			var urlData = urlResult(urlConstruct('trophies', 'remove-achieved', [['trophy_id', Std.string(id)]]), function() {
+			var urlData = urlResult(urlConstruct('trophies', 'remove-achieved', ['trophy_id' => Std.string(id)]), function() {
 				for (troph in daList) {
 					if (troph.id == id) {
 						if (troph.achieved != false) {
@@ -389,19 +375,19 @@ class GJClient {
 	 */
 	public static function getScoresList(fromUser:Bool, ?table_id:Int, ?delimiter:Int, limit:Int = 10, ?onSuccess:() -> Void,
 			?onFail:() -> Void):Null<Array<Score>> {
-		var daParams:Array<Array<String>> = [];
+		var daParams:Map<String, String> = [];
 
 		if (table_id != null)
-			daParams.push(['table_id', Std.string(table_id)]);
+			daParams.set('table_id', Std.string(table_id));
 		if (delimiter != null)
-			daParams.push([delimiter >= 0 ? 'better_than' : 'worse_than', Std.string(Math.abs(delimiter))]);
+			daParams.set(delimiter >= 0 ? 'better_than' : 'worse_than', Std.string(Math.abs(delimiter)));
 
 		if (limit <= 0)
 			limit = 1;
 		if (limit > 100)
 			limit = 100;
 		if (limit != 10)
-			daParams.push(['limit', Std.string(limit)]);
+			daParams.set('limit', Std.string(limit));
 
 		var urlData = urlResult(urlConstruct('scores', null, daParams != [] ? daParams : null, fromUser, fromUser), function() {
 			printMsg('Scores list from the ${table_id == null ? 'Principal Score Table' : 'Table ID:' + Std.string(table_id)} fetched successfully!');
@@ -430,12 +416,12 @@ class GJClient {
 	 */
 	public static function submitNewScore(score_content:String, score_value:Int, ?extraInfo:String, ?table_id:Int, ?onSuccess:Score->Void,
 			?onFail:() -> Void) {
-		var daParams:Array<Array<String>> = [['score', score_content], ['sort', Std.string(score_value)]];
+		var daParams:Map<String, String> = ['score' => score_content, 'sort' => Std.string(score_value)];
 
 		if (extraInfo != null)
-			daParams.push(['extra_data', extraInfo]);
+			daParams.set('extra_data', extraInfo);
 		if (table_id != null)
-			daParams.push(['table_id', Std.string(table_id)]);
+			daParams.set('table_id', Std.string(table_id));
 
 		if (logged) {
 			var urlData = urlResult(urlConstruct('scores', 'add', daParams), function() {
@@ -473,9 +459,9 @@ class GJClient {
 		var daTempScore = getScoresList(true, table_id, null, 1);
 
 		if (logged && daTempScore != null) {
-			var daParams = [['sort', Std.string(daTempScore[0].sort)]];
+			var daParams = ['sort' => Std.string(daTempScore[0].sort)];
 			if (table_id != null)
-				daParams.push(['table_id', Std.string(table_id)]);
+				daParams.set('table_id', Std.string(table_id));
 
 			var urlData = urlResult(urlConstruct('scores', 'get-rank', daParams, false, false));
 			var daRank:Int = urlData != null && logged ? urlData.rank : -1;
@@ -506,8 +492,6 @@ class GJClient {
 				printMsg('Logged Successfully! Welcome back ${getUser()}!');
 			if (onSuccess != null && !logged && userData != null)
 				onSuccess(userData);
-
-			logged = true;
 		}, function() {
 			printMsg('Login process failed!');
 			if (onFail != null)
@@ -532,7 +516,6 @@ class GJClient {
 				printMsg('Logged out successfully!');
 			if (onSuccess != null && logged)
 				onSuccess();
-			logged = false;
 		}, function() {
 			printMsg('Logout process failed!');
 			if (onFail != null)
@@ -558,7 +541,6 @@ class GJClient {
 				printMsg('Ping failed! You\'ve been disconnected!');
 				if (onFail != null)
 					onFail();
-				logged = false;
 			});
 			if (urlData != null)
 				urlData;
@@ -588,19 +570,17 @@ class GJClient {
 	}
 
 	// INTERNAL FUNCTIONS (DON'T ALTER IF YOU DON'T KNOW WHAT YOU'RE DOING!!)
-	static var curCommand:String = '';
 	static var noDataWarned:Bool = false;
 
 	static function printMsg(message:String)
 		if (showMessages)
-			Sys.println('$printPrefix $message');
+			Sys.println('GJClient: $message');
 
-	static function urlConstruct(command:String, ?action:String, ?params:Array<Array<String>>, userAllowed:Bool = true, tokenAllowed:Bool = true):Null<Http> {
+	static function urlConstruct(command:String, ?action:String, ?params:Map<String, String>, userAllowed:Bool = true, tokenAllowed:Bool = true):Null<Http> {
 		if (hasLoginInfo() && hasGameInfo()) {
 			var mainURL:String = "http://api.gamejolt.com/api/game/v1_2/";
 
-			curCommand = '$command${action != null ? '/$action' : ''}';
-			mainURL += curCommand;
+			mainURL += '$command${action != null ? '/$action' : ''}';
 			mainURL += '/?game_id=${Std.string(GJKeys.id)}'; // Private Thingie (Fuck you hackers lmao)
 
 			if (userAllowed)
@@ -608,8 +588,8 @@ class GJClient {
 			if (tokenAllowed)
 				mainURL += '&user_token=${getToken()}';
 			if (params != null)
-				for (pars in params)
-					mainURL += '&${pars[0]}=${pars[1]}';
+				for (k => v in params)
+					mainURL += '&$k=$v';
 
 			var daEncode:String = mainURL + GJKeys.key; // Private thingie (Fuck you hackers lmao)
 
@@ -633,7 +613,6 @@ class GJClient {
 		var result:Null<Dynamic> = null;
 
 		if (daUrl != null) {
-			printMsg('Executing "${curCommand}" ...');
 			daUrl.onData = function(data:String) {
 				result = Json.parse(data).response;
 				if (onSuccess != null)
@@ -650,9 +629,54 @@ class GJClient {
 		return result;
 	}
 
+	static function authUser(?onSuccess:() -> Void, ?onFail:() -> Void) {
+		var urlData = urlResult(urlConstruct('users', 'auth'), function() {
+			printMsg('User authenticated successfully!');
+			if (onSuccess != null)
+				onSuccess();
+		}, function() {
+			printMsg('User authentication failed!');
+			setUserInfo(null, null);
+			noDataWarned = false;
+			if (onFail != null)
+				onFail();
+		});
+		if (urlData != null)
+			urlData;
+	}
+
+	static function getImage(id:Int, imageUrl:String) {
+		printMsg('Loading image from user with ID: $id ...');
+
+		var newUrl:String = imageUrl.substring(0, imageUrl.indexOf("/", 23));
+		newUrl += '/1000';
+		newUrl += imageUrl.substr(34);
+		newUrl = newUrl.replace(".jpg", ".png");
+
+		var daFuture:Future<BitmapData> = BitmapData.loadFromFile(newUrl);
+		daFuture.onComplete(function(bmap) {
+			var newGraphic:FlxGraphic = FlxGraphic.fromBitmapData(bmap);
+			newGraphic.persist = true;
+			newGraphic.destroyOnNoUse = false;
+			userGraphics.set(id, newGraphic);
+			printMsg('Image loaded successfully from $newUrl');
+		});
+		daFuture.onError(e -> printMsg("Image load failed: " + Std.string(e)));
+	}
+
 	static function getUser():Null<String>
 		return FlxG.save.data.user;
 
 	static function getToken():Null<String>
 		return FlxG.save.data.token;
+
+	static function get_logged():Bool {
+		var result:Bool = false;
+		var process = urlResult(urlConstruct('sessions', 'check'));
+
+		if (process != null)
+			result = process.success == 'true';
+
+		return result;
+	}
 }

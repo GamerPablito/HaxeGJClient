@@ -1,8 +1,8 @@
-# GameJolt Adaptation for FNF and Haxeflixel
+# Haxe GameJolt Client
 
 Heya there! GamerPablito here!
 
-Thanks for use this custom client for GameJolt, this has very useful functions for different purposes with a little better performance than the default libraries (such as the flixel file ~~"FlxGameJolt"~~ or the original ~~"gamejoltAPI"~~ library stuff).
+Thanks for use this custom client for GameJolt for Haxe, this has very useful functions for different purposes with a little better performance than the default libraries (such as the flixel file ~~"FlxGameJolt"~~ or the original ~~"gamejoltAPI"~~ library stuff).
 
 This was originally made for some Friday Night Funkin' mods, but it can be used for any game made with Haxeflixel as well.
 
@@ -33,6 +33,9 @@ You must do the same steps from before, then go to the `project.xml` file and ad
 
 ```xml
 <define name="GAMEJOLT_ALLOWED" if="desktop" unless="ACHIEVEMENTS_ALLOWED" />
+
+<!-- Don't forget to comment the ACHIEVEMENTS_ALLOWED line ofc-->
+<!-- define name="ACHIEVEMENTS_ALLOWED" /-->
 ```
 
 With that on mind, every time you insert a command from this in some part of your game, make sure its limited by the .xml conditional: `#if GAMEJOLT_ALLOWED ... #end` (cuz this client is made for computers only, and without the `ACHIEVEMENTS_ALLOWED` stuff getting in its way).
@@ -55,11 +58,13 @@ class Example extends FlxUIState
 }
 ```
 
+You can find some menu templates that uses this on [here](https://github.com/GamerPablito/FNF-GameJolt-Menus) if you prefer!
+
 ## Still have doubts about its use?
 If you're still have questions about how to use this client correctly, or if you want some menu templates to begin with for your game (FNF mods or anything else), you're free to talk to me by [Twitter](https://twitter.com/GamerPablito1) or Discord (GamerPablito#3132). I have no kind of special access you need to do this at all!
 
 ## Special Thanks
 - [EyeDaleHim](https://github.com/EyeDaleHim) : For suggest me about a better command for printing responses
 - [MemeHoovy](https://github.com/MemeHovy) : For giving me a hand explaining differences between this integration and TentaRJ's one
-- [TentaRJ](https://github.com/TentaRJ) : For being an inspiration for me to create this
+- [TentaRJ](https://github.com/TentaRJ) : For being a huge inspiration for me to create this
 - [bimagamongMOP](https://bimagamongmopmain.carrd.co/) : For making me realize a gramatical error in the code ("Trophie" to "Trophy")
