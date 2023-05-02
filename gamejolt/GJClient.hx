@@ -488,9 +488,8 @@ class GJClient {
 		var urlData = urlResult(urlConstruct('sessions', 'open'), function() {
 			var userData = getUserData();
 
-			if (!logged)
-				printMsg('Logged Successfully! Welcome back ${getUser()}!');
-			if (onSuccess != null && !logged && userData != null)
+			printMsg('Logged Successfully! Welcome back ${getUser()}!');
+			if (onSuccess != null && userData != null)
 				onSuccess(userData);
 		}, function() {
 			printMsg('Login process failed!');
@@ -512,9 +511,8 @@ class GJClient {
 	 */
 	public static function logout(?onSuccess:() -> Void, ?onFail:() -> Void) {
 		var urlData = urlResult(urlConstruct('sessions', 'close'), function() {
-			if (logged)
-				printMsg('Logged out successfully!');
-			if (onSuccess != null && logged)
+			printMsg('Logged out successfully!');
+			if (onSuccess != null)
 				onSuccess();
 		}, function() {
 			printMsg('Logout process failed!');
@@ -560,7 +558,7 @@ class GJClient {
 	public static function initialize(?onSuccess:User->Void, ?onFail:() -> Void) {
 		if (hasLoginInfo() && !logged) {
 			authUser(function() {
-				login((userData) -> if (onSuccess != null && !logged) onSuccess(userData), onFail);
+				login((userData) -> if (onSuccess != null) onSuccess(userData), onFail);
 			}, onFail);
 
 			if (logged)
