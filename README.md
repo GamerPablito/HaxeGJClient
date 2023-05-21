@@ -14,10 +14,12 @@ NOTE: Don't get confused with the GJ Integration made by [TentaRJ](https://githu
 
 ## Special Features
 - Includes haxe libraries like:
-  - `Http` (used to track info from the GameJolt API)
   - `Json` (used to cast specific information formats from the fetched data)
   - `Md5` (used to encript a special signature to access the API in a safe way)
   - `Sha1` (used as alternative for `Md5`, works the same)
+  - `Bytes` (used to load information from web without lag)
+  - `Promises` and `Futures` (used to make data fetching more dynamic and organized)
+
 - This client is totally independient, it doesn't requires any extra GameJolt libraries to work, cuz everything is written and composed here
 - This also contains some files with info formats about how some data has to be received like, this in order to let the user know how to use the data in their game
 - Has many extra features that can be fetched instantly without you have to code a lot for them
@@ -52,13 +54,14 @@ class Example extends FlxUIState
     super.create();
 
     #if GAMEJOLT_ALLOWED
-    GJClient.initialize();
+    var login = GJClient.login();
+    login.onComplete(user -> trace(user));
+    login.onComplete((progress, total) -> trace("Progress:" + progress + "/" + total));
+    login.onError(error -> trace(error));
     #end
   }
 }
 ```
-
-You can find some menu templates that uses this on [here](https://github.com/GamerPablito/FNF-GameJolt-Menus) if you prefer!
 
 ## Still have doubts about its use?
 If you're still have questions about how to use this client correctly, or if you want some menu templates to begin with for your game (FNF mods or anything else), you're free to talk to me by [Twitter](https://twitter.com/GamerPablito1) or Discord (GamerPablito#3132). I have no kind of special access you need to do this at all!
@@ -68,3 +71,4 @@ If you're still have questions about how to use this client correctly, or if you
 - [MemeHoovy](https://github.com/MemeHovy) : For giving me a hand explaining differences between this integration and TentaRJ's one
 - [TentaRJ](https://github.com/TentaRJ) : For being a huge inspiration for me to create this
 - [bimagamongMOP](https://bimagamongmopmain.carrd.co/) : For making me realize a gramatical error in the code ("Trophie" to "Trophy")
+- [xMediKat](https://www.xmedikat.live) : For suggest me ideas to get rid of lagspikes
