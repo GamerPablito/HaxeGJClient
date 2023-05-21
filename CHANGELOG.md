@@ -1,5 +1,15 @@
 # Haxe GameJolt Client Changelog
 
+## V2.0
+- FEATURE: Function will no longer make lagspikes since they're now made with `Promises` and `Futures` (More info in README and Command Descriptions)
+- New instructions for every function according to the feature
+- Instructions for `Future` instances use in the main description of the Client
+- You can wacth and use the returned data from every `Future` function using the `onComplete()` commands attached to them
+- You can watch and use the progress values from every `Future` function using the `onProgress()` commands attached to them
+- Showing errors will now be completely optional, you can make them appear using the `onError()` commands setted up for every `Future` function
+
+<hr>
+
 ## V1.6
 - PFP Images for Users are now supported through some OpenFL tools (check `userGraphics` variable for more info)
 - The `logged` variable can now be auto-updated every time it's used, so you can check your login state in real-time
