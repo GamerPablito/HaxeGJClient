@@ -152,53 +152,51 @@ class GJClient {
 
 	/**
 	 * Sets a new GUI in the database, the Username and the Game Token of the player respectively. \
-	 * This command also closes the previous session (if there was one active) before replace the actual GUI.
+	 * You can use this before use `login()` or `logout()`, since they use the data setted through here.
 	 * 
-	 * If you leave the parameters with an empty string or null, you will be logged out automatically,
-	 * and you will be able to log in again with other user's GUI.
-	 * 
-	 * But if you just wanna log out without erase your GUI from the application, use `logout()` instead.
-	 * 
-	 * @param user The Username of the Player.
-	 * @param token The Game Token of the Player.
+	 * @param user The new Username of the Player.
+	 * @param token The new Game Token of the Player.
 	 * @return A `Future` instance with a `Bool` result of the process.
 	 * 			**(`Bool` = Whether if process was completed but also successful or not)**
 	 */
 	public static function setUserInfo(user:Null<String>, token:Null<String>):Future<Bool> {
+		var temp_user = getUser();
+		var temp_token = getToken();
+
+		if (user == '')
+			user = null;
+		if (token == '')
+			token = null;
+
+		function resetOldData() {
+			FlxG.save.data.gjUser = temp_user;
+			FlxG.save.data.gjToken = temp_token;
+		}
+
+		logout();
+
 		var daPromise:Promise<Bool> = new Promise<Bool>();
-		var disconnect = logout();
-		disconnect.onComplete(function(success) {
-			var temp_user = getUser();
-			var temp_token = getToken();
-			function resetOldData() {
-				FlxG.save.data.user = temp_user;
-				FlxG.save.data.token = temp_token;
-			}
+		if (user != null && token != null) {
+			FlxG.save.data.gjUser = user;
+			FlxG.save.data.gjToken = token;
 
-			if (success) {
-				if (user == '')
-					user = null;
-				if (token == '')
-					token = null;
-
-				FlxG.save.data.user = user;
-				FlxG.save.data.token = token;
-
-				var auth = authUser();
-				auth.onComplete(function(success) {
-					if (!success)
-						resetOldData();
-
-					daPromise.complete(success);
-				});
-				auth.onProgress((p, f) -> daPromise.progress(p, f));
-				auth.onError(function(e) {
+			var newAuth = authUser();
+			newAuth.onComplete(function(success) {
+				if (!success)
 					resetOldData();
-					daPromise.error('Failed to authenticate incoming user data -> $e');
-				});
-			}
-		});
-		disconnect.onError(e -> daPromise.error('Failed to disconnect GameJolt to replace new user data -> $e'));
+
+				daPromise.complete(success);
+			});
+			newAuth.onProgress((p, f) -> daPromise.progress(p, f));
+			newAuth.onError(function(e) {
+				resetOldData();
+				daPromise.error(e);
+			});
+		} else {
+			FlxG.save.data.gjUser = FlxG.save.data.gjToken = null;
+			daPromise.complete(true);
+		}
+
 		return daPromise.future;
 	}
 
@@ -481,8 +479,9 @@ class GJClient {
 
 	/**
 	 * This will open your GameJolt session. \n
-	 * Useful for re-open a session when a new GUI is setted by `setUserInfo()`,
-	 * or if you closed your session by decision of yours (without erasing your GUI, using `logout()`, otherwise re-use `setUserInfo()`).
+	 * Useful for open a new session when a new GUI is setted by `setUserInfo()`,
+	 * or if you closed your session by decision of yours (without erasing your GUI,
+	 * use only `logout()`, otherwise use `setUserInfo()` with null or empty parameters instead).
 	 * @see The `typedef` classes defined in this client, to get more info about how formats are fetched like.
 	 * @return A `Future` instance with an `User` result of the process.
 	 * 			**(`User` = The info of the new user logged in, if process was successfully finished)**
@@ -510,7 +509,7 @@ class GJClient {
 	/**
 	 * If there's a session active, this command will log it out. Pretty self-explanatory isn't it? \
 	 * But, if you want to log out, but also want to erase your data from the application,
-	 * you can use the function `setUserInfo()` with null or empty parameters.
+	 * you can use the function `setUserInfo()` with null or empty parameters instead.
 	 * @return A `Future` instance with a `Bool` result of the process.
 	 * 			**(`Bool` = Whether if process was completed but also successful or not)**
 	 */
@@ -598,7 +597,7 @@ class GJClient {
 			daFuture.onProgress((p, f) -> daPromise.progress(Std.int((p / f) * 100), 100));
 			daFuture.onError(e -> daPromise.error(e));
 		} else
-			daPromise.error('Missing Game Info or User info for URL request');
+			daPromise.error('Missing or wrong Game Info or User info for URL request');
 
 		return daPromise.future;
 	}
@@ -613,8 +612,8 @@ class GJClient {
 	}
 
 	static function getUser():Null<String>
-		return FlxG.save.data.user;
+		return FlxG.save.data.gjUser;
 
 	static function getToken():Null<String>
-		return FlxG.save.data.token;
+		return FlxG.save.data.gjToken;
 }
