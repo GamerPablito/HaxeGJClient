@@ -1,0 +1,21 @@
+{
+    "name": "HaxeGJClient",
+    "url": "https://github.com/GamerPablito/HaxeGJClient/",
+    "license": "Apache",
+    "tags": [
+        "gamejolt-api",
+        "haxeflixel",
+        "fnf"
+    ],
+    "description": "Now this acts like a constructor",
+    "version": "2.5.0",
+    "classPath": "gamejolt/",
+    "releasenote": "Initial release, everything is working correctly.",
+    "contributors": [
+        "GamerPablito"
+    ],
+    "dependencies": {
+        "lime": "8.0.0"
+    },
+    "main": "GJClient"
+}
