@@ -15,7 +15,7 @@
         "GamerPablito"
     ],
     "dependencies": {
-        "lime": "8.0.0"
+        "lime": ""
     },
     "main": "GJClient"
 }

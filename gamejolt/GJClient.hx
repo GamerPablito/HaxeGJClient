@@ -1,4 +1,4 @@
-package gamejolt;
+package;
 
 import haxe.Json;
 import haxe.Timer;
