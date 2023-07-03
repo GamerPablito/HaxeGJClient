@@ -18,53 +18,24 @@ NOTE: Don't get confused with the GJ Integration made by [TentaRJ](https://githu
   - `Md5` (used to encript a special signature to access the API in a safe way)
   - `Sha1` (used as alternative for `Md5`, works the same)
   - `Bytes` (used to load information from web without lag)
-  - `Promises` and `Futures` (used to make data fetching more dynamic and organized)
+  - `Events` (used to trigger actions with less effort)
 
 - This client is totally independient, it doesn't requires any extra GameJolt libraries to work, cuz everything is written and composed here
 - This also contains some files with info formats about how some data has to be received like, this in order to let the user know how to use the data in their game
 - Has many extra features that can be fetched instantly without you have to code a lot for them
 - Every file is full of instructions for each command, in order to do the things right if you don't know so much about it
 
-## How to Use in Game
-1. Download this repository
-2. Copy the `gamejolt` folder into the `source` folder of your game
-3. Using the `GJKeys.hx` file, put in there your game data from GameJolt.<br>WARNING: You must add the line `source/gamejolt/GJKeys.hx` into the `.gitignore` file of your game directory, this in order to avoid the upload the file of the private data to GitHub.
-
+## How to Use
+1. Open the command prompt or Powershell and run: `haxelib install HaxeGJClient`
+2. Open the `project.xml` file and write at the bottom of the libraries section
+   ```xml
+   <haxelib name="HaxeGJClient">
+   ```
 ## How to Use in FNF
-You must do the same steps from before, then go to the `project.xml` file and add the following line (this in order to make the GJ related stuff you make in the mod to be toggled):
-
-```xml
-<define name="GAMEJOLT_ALLOWED" if="desktop" unless="ACHIEVEMENTS_ALLOWED" />
-
-<!-- Don't forget to comment the ACHIEVEMENTS_ALLOWED line ofc-->
-<!-- define name="ACHIEVEMENTS_ALLOWED" /-->
-```
-
-With that on mind, every time you insert a command from this in some part of your game, make sure its limited by the .xml conditional: `#if GAMEJOLT_ALLOWED ... #end` (cuz this client is made for computers only, and without the `ACHIEVEMENTS_ALLOWED` stuff getting in its way).
-Example:
-```haxe
-#if GAMEJOLT_ALLOWED
-import gamejolt.GJClient;
-#end
-  
-class Example extends FlxUIState
-{
-  override function create()
-  {
-    super.create();
-
-    #if GAMEJOLT_ALLOWED
-    var login = GJClient.login();
-    login.onComplete(user -> trace(user));
-    login.onComplete((progress, total) -> trace("Progress:" + progress + "/" + total));
-    login.onError(error -> trace(error));
-    #end
-  }
-}
-```
 
 ## Still have doubts about its use?
 If you're still have questions about how to use this client correctly, or if you want some menu templates to begin with for your game (FNF mods or anything else), you're free to talk to me by [Twitter](https://twitter.com/GamerPablito1) or Discord (GamerPablito#3132). I have no kind of special access you need to do this at all!
+You can also check my [Youtube Channel](https://www.youtube.com/channel/UCpavbRRdISmsF_fpiAuVafg), where you can find a tutorial about its use.
 
 ## Special Thanks
 - [EyeDaleHim](https://github.com/EyeDaleHim) : For suggest me about a better command for printing responses
