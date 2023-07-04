@@ -27,11 +27,10 @@ NOTE: Don't get confused with the GJ Integration made by [TentaRJ](https://githu
 
 ## How to Use
 1. Open the command prompt or Powershell and run: `haxelib install HaxeGJClient`
-2. Open the `project.xml` file and write at the bottom of the libraries section
-   ```xml
-   <haxelib name="HaxeGJClient">
-   ```
-## How to Use in FNF
+2. Open the `project.xml` file and write at the bottom of the libraries section.
+ ```xml
+ <haxelib name="HaxeGJClient">
+ ```
 
 ## Still have doubts about its use?
 If you're still have questions about how to use this client correctly, or if you want some menu templates to begin with for your game (FNF mods or anything else), you're free to talk to me by [Twitter](https://twitter.com/GamerPablito1) or Discord (GamerPablito#3132). I have no kind of special access you need to do this at all!
