@@ -1,32 +1,43 @@
 package;
 
+import flixel.util.typeLimit.OneOfTwo;
 import haxe.Json;
 import haxe.Timer;
 import haxe.crypto.Md5;
 import haxe.crypto.Sha1;
-import lime.app.Event;
+import lime.app.Application;
+import lime.app.Future;
+import lime.app.Promise;
 import lime.utils.Bytes;
-import sys.thread.Thread;
 
 using StringTools;
 
+typedef Response =
+{
+	// General
+	success:String,
+	?message:String,
+	// User Fetching
+	?users:Array<User>,
+	// Scores Fetching
+	?trophies:Array<Trophy>,
+	// Friends Fetching
+	?friends:Array<{friend_id:Int}>,
+}
+
 /**
- * The way the trophies are fetched from your game API.
+ * When there's a session active, data is loaded using this formatted here,
+ * so you don't have to make repetitive requests just to get the same data all the time.
  * 
- * @param id The ID of the Trophy.
- * @param title The title of the Trophy.
- * @param description The description of the Trophy.
- * @param difficulty The difficulty rank of the Trophy.
- * @param image_url The link of the image that represents the Trophy.
- * @param achieved Whether this Trophy was achieved or not, it can be a string if it was (with info about how much time ago it was achieved) or bool if not (false).
+ * @param info Information data about the current user logged in.
+ * @param friends Friends List from the current user logged in.
+ * @param trophies Trophies LIst and their state according to the data from the current user logged in.
  */
-typedef Trophy = {
-	id:Int,
-	title:String,
-	description:String,
-	difficulty:String,
-	image_url:String,
-	achieved:Dynamic
+typedef Session =
+{
+	info:User,
+	friends:Array<User>,
+	trophies:Array<Trophy>
 }
 
 /**
@@ -46,7 +57,8 @@ typedef Trophy = {
  * @param developer_website The website of the User.
  * @param developer_description The description of the User.
  */
-typedef User = {
+typedef User =
+{
 	id:Int,
 	type:String,
 	username:String,
@@ -62,291 +74,277 @@ typedef User = {
 }
 
 /**
- * The way the current session info is formatted like in here.
- * @param userInfo The general info of the User
- * @param friends The friend list of the User, along with each one's general info
- * @param trophies The list of trophies (locked and unlocked) in the game the User counts with
+ * The way the trophies are fetched from your game API.
+ * 
+ * @param id The ID of the Trophy.
+ * @param title The title of the Trophy.
+ * @param description The description of the Trophy.
+ * @param difficulty The difficulty rank of the Trophy.
+ * @param image_url The link of the image that represents the Trophy.
+ * @param achieved Whether this Trophy was achieved or not, it can be a string if it was (with info about how much time ago it was achieved) or bool if not (false).
  */
-typedef Session = {
-	userInfo:User,
-	friends:Array<User>,
-	trophies:Array<Trophy>
+typedef Trophy =
+{
+	id:Int,
+	title:String,
+	description:String,
+	difficulty:String,
+	image_url:String,
+	achieved:String
 }
 
-/**
- * A completely original GameJolt Client made by [GamerPablito](https://https://twitter.com/GamerPablito1)
- * using some tools from Haxe and Lime to gather info from the GameJolt API with ease.
- * 
- * No extra extensions required at all!
- * 
- * Originally made for the game Friday Night Funkin', but it can also be used for every game made with HaxeFlixel.
- * 
- * ## Example of Use for Event Hosts:
- * Parameters for these are the following:
- * - The new function to add to this event along the vessel variable for returning if variable is not of type Void, otherwise leave it as `()`.
- * - Whether you want this to be executed once or not. `False` by default.
- * - The priority of the function (if you set many), the more its value, the sooner will be executed. Default is 0.
- */
-class GJClient {
+class GJClient
+{
 	/**
-	 * Event host where you can manage actions when a `Trophy` is achieved. \
-	 * Useful when it comes to trigger them with the `Trophy` data for popup notifications or related stuff.
+	 * If set to `true`, requests will be made using `Md5` signature encryptation. \
+	 * If set to `false`, they'll use `Sha1` signature encryptation instead.
 	 * 
-	 * ```haxe
-	 * // Example line:
-	 * onTrophy.add(function (trophy) {trace(trophy);}, false, 0);
-	 * ```
-	 * 
-	 * @see Instructions of Use for Events in the Client Description
-	 */
-	public var onTrophy:Event<Trophy->Void> = new Event<Trophy->Void>();
-
-	/**
-	 * Event host where you can manage actions when the `User` connects with GameJolt. \
-	 * Useful when it comes to trigger them with the `User` data for popup notifications or related stuff.
-	 * 
-	 * ```haxe
-	 * // Example line:
-	 * onConnect.add(function (user) {trace(user);}, false, 0);
-	 * ```
-	 * 
-	 * @see Instructions of Use for Events in the Client Description
-	 */
-	public var onConnect:Event<User->Void> = new Event<User->Void>();
-
-	/**
-	 * Event host where you can manage actions when the `User` disconnects from GameJolt. \
-	 * You can set up this to make actions in case this occur.
-	 * 
-	 * ```haxe
-	 * // Example line:
-	 * onDisconnect.add(function () {trace("callback");}, false, 0);
-	 * ```
-	 * 
-	 * @see Instructions of Use for Events in the Client Description
-	 */
-	public var onDisconnect:Event<Void->Void> = new Event<Void->Void>();
-
-	/**
-	 * Event host where you can manage actions when the `refresh()` action has started. \
-	 * An use of this can be like, if you want to show loading sprites or make something to happen before data is refreshed.
-	 * 
-	 * ```haxe
-	 * // Example line:
-	 * onRefreshStart.add(function () {trace("callback");}, false, 0);
-	 * ```
-	 * 
-	 * @see Instructions of Use for Events in the Client Description
-	 */
-	public var onRefreshStart:Event<Void->Void> = new Event<Void->Void>();
-
-	/**
-	 * Event host where you can manage actions when the `refresh()` action ended with success. \
-	 * Can be used to give a visual advertisement about the data refreshment failure.
-	 * 
-	 * ```haxe
-	 * // Example line:
-	 * onRefreshError.add(function () {trace("callback");}, false, 0);
-	 * ```
-	 * 
-	 * @see Instructions of Use for Events in the Client Description
-	 */
-	public var onRefreshError:Event<Void->Void> = new Event<Void->Void>();
-
-	/**
-	 * Event host where you can manage actions when the `refresh()` actions ends with success. \
-	 * You can set actions here to make things to happen using the updated data.
-	 * 
-	 * ```haxe
-	 * // Example line:
-	 * onRefreshEnd.add(function () {trace("callback");}, false, 0);
-	 * ```
-	 * 
-	 * @see Instructions of Use for Events in the Client Description
-	 */
-	public var onRefreshEnd:Event<Void->Void> = new Event<Void->Void>();
-
-	/**
-	 * If valid, the name and the token of the input `User` will be registered here. \
-	 * These data are indispensable in actions processing.
-	 */
-	public var user:Null<{name:String, token:String}> = null;
-
-	/**
-	 * If a session is open, all info about the current `User` will be registered here (General Info, Trophies and Friends). \
-	 * If the user is logged out, this will always return `null`.
-	 */
-	public var session(default, null):Null<Session> = null;
-
-	/**
-	 * The time in seconds of the delay for session pinging signals.
-	 * Must be a value between 1-60. Default is 3.
-	 */
-	public var pingDelay(default, set):Float = 3;
-
-	/**
-	 * If `true`, processings will be signed with `Md5` encoding system. \
-	 * If `false`, processings will be signed with `Sha1` encoding system instead. \
 	 * Default is `true`.
 	 */
 	public var useMd5:Bool = true;
 
 	/**
-	 * If you want to know details about the processings and stuff through the console, enable this.
+	 * Whether if you want to enable debug notes of the requests in console or not.
 	 */
-	public var showAllProcessings:Bool = false;
+	public var debugNotes:Bool = false;
 
 	/**
-	 * If you want to know the errors during processings through the console, enable this.
+	 * A holder that keeps loaded information of the user that's currently logged in. \
+	 * If there's no session active, this will be `null`.
 	 */
-	public var showAllAlerts:Bool = false;
+	public var session(default, null):Null<Session> = null;
 
 	var game:{id:Int, key:String};
-	var pingTimer:Timer;
+	var user:{name:String, token:String} = {name: '', token: ''};
+	var pingState:String = 'active';
 
 	/**
-	 * Creates a new `GJClient` global instance.
-	 * 
-	 * @param game The ID and the Private Key of your game goes here
-	 * @param user The name and the token of a user for auto-login goes here (optional)
+	 * Makes a new `GJClient` constructor.
+	 * @param game The ID and Private Key of your game goes here.
+	 * @param pingInterval Interval in seconds for the Client to make ping session signals to GameJolt. Default is 3.
 	 */
-	public function new(game:{id:Int, key:String}, ?user:{name:String, token:String}) {
+	public function new(game:{id:Int, key:String}, pingInterval:Float = 3)
+	{
 		this.game = game;
-		if (user != null)
-			this.user = user;
+		Application.current.window.onFocusIn.add(() -> pingState = 'active');
+		Application.current.window.onFocusOut.add(() -> pingState = 'idle');
 
-		login();
-		refreshPingTimer(pingDelay);
-		if (showAllProcessings)
-			trace('GameJolt Client Initialized!');
+		if (pingInterval < 1)
+			pingInterval = 1;
+		if (pingInterval > 60)
+			pingInterval = 60;
+
+		new Timer(pingInterval * 1000).run = () -> if (request('sessions', 'ping', ['status' => pingState]).success != 'true'
+			&& session != null) logout();
+
+		if (debugNotes)
+			trace('GJClient Initialized! | Ping Interval: ${pingInterval}s');
 	}
 
 	/**
-	 * Connects the User (with the `user` variable data) to GameJolt. \
-	 * This also set up `session` variable data and dispatches actions set in the `onConnect` Event Host if ends with success.
+	 * Opens a new session and writes `session` variable if successful.
+	 * @param newUser The username and user token of the new user to log in.
+	 * @return A `Future` instance where you can set actions if this got success or failure.
 	 */
-	public function login() {
-		if (session == null) {
-			var auth = urlConstruct('users', 'auth');
-			if (auth != null) {
-				urlConstruct('sessions', 'open');
-				refresh();
-				if (session != null)
-					onConnect.dispatch(session.userInfo);
-			} else {
-				if (showAllAlerts)
-					trace('Failed to authenticate incoming user data');
+	public function login(newUser:Null<{name:String, token:String}>):Future<User>
+	{
+		var process = new Promise<User>();
 
-				user = null;
-			}
-		}
-	}
+		if (newUser.name != '' && newUser.token != '')
+		{
+			if (session == null)
+			{
+				user = newUser;
+				var auth = request('users', 'auth');
+				if (auth.success == 'true' && !isSessionActive())
+				{
+					var connect = request('sessions', 'open');
+					if (connect.success == 'true')
+					{
+						var userInfo = getUserData();
+						var friends = getFriendsList();
+						var trophies = getTrophiesList();
 
-	/**
-	 * Disconnects the User from GameJolt. \
-	 * This also makes `session` variable to be `null` and dispatches actions set in the `onDisconnect` Event Host if ends with success.
-	 * 
-	 * @param quitUser Whether the `user` variable will be set to `null` along or not
-	 */
-	public function logout(quitUser:Bool = false) {
-		if (session != null) {
-			urlConstruct('sessions', 'close');
-			session = null;
-			onDisconnect.dispatch();
-
-			if (quitUser)
-				user = null;
-		}
-	}
-
-	/**
-	 * If there's a session active, this will refresh and update `session` variable. \
-	 * This also dispatches its 3 Event Hosts depending of the process state:
-	 * - `onRefreshStart`: When the process start
-	 * - `onRefreshError`: When the process ends with error
-	 * - `onRefreshEnd`: When the process ends with success
-	 */
-	public function refresh() {
-		if (session != null) {
-			onRefreshStart.dispatch();
-
-			var userInfo = getUserData();
-			var trophies = getTrophiesList();
-			var friends = getFriendsList();
-
-			if (userInfo != null && trophies != null && friends != null) {
-				if (showAllProcessings)
-					trace('Current user data was successfully refreshed');
-
-				session = {userInfo: userInfo, trophies: trophies, friends: friends};
-				onRefreshEnd.dispatch();
-			} else {
-				if (showAllAlerts)
-					trace('Current user data failed to refresh, logging out...');
-
-				logout(true);
-				onRefreshError.dispatch();
-			}
-		}
-	}
-
-	/**
-	 * If there's a session active, this makes the user achieve a trophy of your game. \
-	 * This also dispatches actions set in the `onTrophy` Event Host along with this trophy data if ends with success.
-	 * @param id A valid ID of the trophy to achieve
-	 */
-	public function addTrophie(id:Int) {
-		if (session != null) {
-			Thread.create(function() {
-				if (showAllProcessings)
-					trace('Adding Trophy with ID: $id ...');
-
-				var process = urlConstruct('trophies', 'add-achieved', ['trophy_id' => Std.string(id)]);
-				if (process != null) {
-					for (t in session.trophies)
-						if (t.id == id) {
-							var updatedTrophies = getTrophiesList();
-							if (updatedTrophies != null)
-								session.trophies = updatedTrophies;
-
-							onTrophy.dispatch(t);
-							if (showAllProcessings)
-								trace('Trophy with ID ($id) was successfully registered as achieved');
-							break;
+						if (userInfo != null && friends != null && trophies != null)
+						{
+							session = {info: userInfo, friends: friends, trophies: trophies};
+							process.complete(userInfo);
 						}
-				} else if (showAllAlerts)
-					trace('Failed to register trophy with ID ($id) as achieved');
-			});
+						else
+						{
+							user = {name: "", token: ""};
+							logout(() -> process.error("Failed to fetch session data!"));
+						}
+					}
+					else
+					{
+						user = {name: "", token: ""};
+						process.error(connect.message != null ? connect.message : "Something went wrong during logging in!");
+					}
+				}
+				else
+				{
+					user = {name: "", token: ""};
+					process.error(auth.message != null ? auth.message : "Something went wrong during authentication!");
+				}
+			}
+			else
+				process.error("You're already logged in!");
 		}
+		else
+			process.error("User data is missing (username and/or user token)!");
+
+		return process.future;
 	}
 
-	function getTrophiesList():Null<Array<Trophy>> {
-		var trophList:Null<Array<Trophy>> = null;
-		var data = urlConstruct('trophies');
+	/**
+	 * Close the current session and makes `null` the `session` variable.
+	 * @param onComplete Optional action when the request is done.
+	 */
+	public function logout(?onComplete:() -> Void)
+	{
+		if (session != null)
+		{
+			request('sessions', 'close');
+			if (!isSessionActive())
+			{
+				user = {name: "", token: ""};
+				session = null;
+			}
+		}
+		if (onComplete != null)
+			onComplete();
+	}
 
-		if (data != null) {
+	/**
+	 * Makes the user to achieve a trophy.
+	 * @param id The ID of the trophy to achieve.
+	 * @return A `Future` instance where you can set actions if this got success or failure.
+	 */
+	public function trophieAdd(id:Int):Future<Trophy>
+	{
+		var promise = new Promise<Trophy>();
+		var process = request('trophies', 'add-achieved', ['trophy_id' => Std.string(id)]);
+		if (process.success == 'true' && session != null)
+		{
+			var newTrophies = getTrophiesList();
+			if (newTrophies != null)
+				session.trophies = newTrophies;
+
+			for (t in session.trophies)
+				if (t.id == id)
+				{
+					promise.complete(t);
+					break;
+				}
+		}
+		else
+			promise.error(process.message != null ? process.message : "Something went wrong at trophie addition!");
+
+		return promise.future;
+	}
+
+	/**
+	 * Removes an achieved trophy from the user, useful when you're about to test your game trophies.
+	 * @param id The ID of the trophy to remove.
+	 * @return A `Future` instance where you can set actions if this got success or failure.
+	 */
+	public function trophieRemove(id:Int):Future<Trophy>
+	{
+		var promise = new Promise<Trophy>();
+		var process = request('trophies', 'remove-achieved', ['trophy_id' => Std.string(id)]);
+		if (process.success == 'true' && session != null)
+		{
+			var newTrophies = getTrophiesList();
+			if (newTrophies != null)
+				session.trophies = newTrophies;
+
+			for (t in session.trophies)
+				if (t.id == id)
+				{
+					promise.complete(t);
+					break;
+				}
+		}
+		else
+			promise.error(process.message != null ? process.message : "Something went wrong at trophie addition!");
+
+		return promise.future;
+	}
+
+	function getUserData(?id:OneOfTwo<Int, String>):Null<User>
+	{
+		var userLoad = request('users', null, id != null ? [(id is Int ? 'user_id' : 'username') => Std.string(id)] : null, id == null, false);
+		if (userLoad.success == 'true')
+		{
+			var daUser = userLoad.users[0];
+			var newPFP = daUser.avatar_url.substring(0, 32);
+
+			newPFP += '1000';
+			newPFP += daUser.avatar_url.substr(34);
+			daUser.avatar_url = newPFP;
+
+			return daUser;
+		}
+
+		return null;
+	}
+
+	function getFriendsList():Null<Array<User>>
+	{
+		var data = request('friends');
+		if (data.success == 'true')
+		{
+			var friends:Array<User> = [];
+			for (person in data.friends)
+			{
+				var fetchPerson = getUserData(person.friend_id);
+				if (fetchPerson == null)
+					continue;
+
+				friends.push(fetchPerson);
+			}
+			return friends;
+		}
+
+		return null;
+	}
+
+	function getTrophiesList():Null<Array<Trophy>>
+	{
+		var trophList:Null<Array<Trophy>> = null;
+		var data = request('trophies');
+
+		if (data.success == 'true')
+		{
 			trophList = data.trophies;
 
-			for (t in trophList) {
+			for (t in trophList)
+			{
 				var newUrl:String = "";
-				if (t.image_url.startsWith('https://m.')) {
+				if (t.image_url.startsWith('https://m.'))
+				{
 					newUrl = t.image_url.substring(0, 37);
 					newUrl += '1000';
 					newUrl += t.image_url.substr(40);
 					newUrl = newUrl.replace(".jpg", ".png");
-				} else {
+				}
+				else
+				{
 					newUrl = "https://s.gjcdn.net/assets/";
-					switch (t.image_url.substring(24).replace('.jpg', '')) {
+					switch (t.image_url.substring(24).replace('.jpg', ''))
+					{
 						case "trophy-bronze-1":
-							newUrl += "9c2c91d0.png";
+							newUrl += "9c2c91d0";
 						case "trophy-silver-1":
-							newUrl += "b46e352e.png";
+							newUrl += "b46e352e";
 						case "trophy-gold-1":
-							newUrl += "363ce2dc.png";
+							newUrl += "363ce2dc";
 						case "trophy-platinum-1":
-							newUrl += "92e5330d.png";
+							newUrl += "92e5330d";
 						default:
 					}
+					newUrl += ".png";
 				}
 				t.image_url = newUrl;
 			}
@@ -354,127 +352,39 @@ class GJClient {
 		return trophList;
 	}
 
-	function getFriendsList():Null<Array<User>> {
-		var friends:Null<Array<User>> = null;
-		var data = urlConstruct('friends');
+	function isSessionActive():Bool
+		return request('sessions', 'check').success == 'true';
 
-		if (showAllProcessings)
-			trace('Loading friend list from current user');
-
-		if (data != null) {
-			var list:Array<Dynamic> = data.friends;
-			friends = [];
-
-			for (person in list) {
-				var fetchPerson = getUserData(Std.int(person.friend_id));
-				if (fetchPerson != null)
-					friends.push(fetchPerson);
-			}
-
-			if (showAllProcessings)
-				trace('Friend list loaded!');
-		} else if (showAllAlerts)
-			trace('Failed to load friend list from the current user');
-
-		return friends;
-	}
-
-	function getUserData(?id:Int):Null<User> {
-		var result:Null<User> = null;
-		var data = urlConstruct('users', null, id != null ? ['user_id' => Std.string(id)] : null, id == null, false);
-
-		if (showAllProcessings)
-			trace('Loading user with ${id == null ? "the input ID" : 'ID: $id'} ...');
-
-		if (data != null) {
-			var daUser:User = cast data.users[0];
-			var newUrl:String = daUser.avatar_url.substring(0, 32);
-
-			newUrl += '1000';
-			newUrl += daUser.avatar_url.substr(34);
-			newUrl = newUrl.replace(".jpg", ".png");
-			daUser.avatar_url = newUrl;
-			result = daUser;
-
-			if (showAllProcessings)
-				trace('Loaded info from user: "${daUser.developer_name}"');
-		} else if (showAllAlerts)
-			trace('Failed to load user with ID: ${id == null ? "the input ID" : ' $id'}');
-
-		return result;
-	}
-
-	function ping() {
-		Thread.create(function() {
-			if (session != null) {
-				var process = urlConstruct('sessions', 'ping');
-				if (process == null) {
-					if (showAllAlerts)
-						trace('Logging out due to ping fail');
-
-					logout();
-				}
-			}
-		});
-	}
-
-	function refreshPingTimer(value:Float) {
-		if (pingTimer != null)
-			pingTimer.stop();
-
-		pingTimer = new Timer(value * 1000);
-		pingTimer.run = ping;
-
-		if (showAllProcessings)
-			trace('Pinging interval is active with a delay of $value seconds');
-	}
-
-	function set_pingDelay(value:Float) {
-		if (value < 1)
-			value = 1;
-		if (value > 60)
-			value = 60;
-		refreshPingTimer(value);
-		return pingDelay = value;
-	}
-
-	function urlConstruct(command:String, ?action:String, ?params:Map<String, String>, userAllowed:Bool = true, tokenAllowed:Bool = true):Null<Dynamic> {
+	function request(command:String, ?action:String, ?params:Map<String, String>, userAllowed:Bool = true, tokenAllowed:Bool = true):Response
+	{
 		var mainURL:String = "http://api.gamejolt.com/api/game/v1_2/";
 		var process:String = '$command${action != null ? '/$action' : ""}';
-		var result:Null<Dynamic> = null;
+
 		mainURL += process;
 		mainURL += '/?game_id=${game.id}';
 
-		if (showAllProcessings)
-			trace('Processing: "$mainURL" ...');
+		if (userAllowed)
+			mainURL += '&username=${user.name}';
+		if (tokenAllowed)
+			mainURL += '&user_token=${user.token}';
+		if (params != null)
+			for (k => v in params)
+				mainURL += '&$k=$v';
 
-		if ((userAllowed || tokenAllowed) && user == null) {
-			if (showAllAlerts)
-				trace('User info is required to make "$process" request to work');
-		} else {
-			if (userAllowed)
-				mainURL += '&username=${user.name}';
-			if (tokenAllowed)
-				mainURL += '&user_token=${user.token}';
-			if (params != null)
-				for (k => v in params)
-					mainURL += '&$k=$v';
+		var daEncode:String = mainURL + game.key;
+		mainURL += '&signature=${useMd5 ? Md5.encode(daEncode) : Sha1.encode(daEncode)}';
 
-			var daEncode:String = mainURL + game.key;
-			mainURL += '&signature=${useMd5 ? Md5.encode(daEncode) : Sha1.encode(daEncode)}';
+		var data = Bytes.fromFile(mainURL);
+		var response:Response;
 
-			var data = Bytes.fromFile(mainURL);
-			if (data != null) {
-				result = cast Json.parse(data.toString()).response;
-				if (result.message != null) {
-					if (showAllAlerts)
-						trace('Failed to process "$process" request -> ${result.message}');
+		if (data == null)
+			response = {success: 'false', message: 'Request failed due to internet disconnection'};
+		else
+			response = cast Json.parse(data.toString()).response;
 
-					result = null;
-				}
-			}
-		}
+		if (response.message != null && debugNotes)
+			trace('"$process" => ${response.message}!');
 
-		return result;
+		return response;
 	}
 }

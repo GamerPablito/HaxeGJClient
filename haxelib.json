@@ -7,10 +7,10 @@
         "haxeflixel",
         "fnf"
     ],
-    "description": "Now this acts like a constructor",
-    "version": "2.5.0",
+    "description": "An useful tool to work with GameJolt for FNF Mods and Haxe Games as well!",
+    "version": "3.0.0",
     "classPath": "gamejolt/",
-    "releasenote": "Initial release, everything is working correctly.",
+    "releasenote": "A massive overhaul!",
     "contributors": [
         "GamerPablito"
     ],
