@@ -31,6 +31,17 @@ NOTE: Don't get confused with the GJ Integration made by [TentaRJ](https://githu
  ```xml
  <haxelib name="HaxeGJClient">
  ```
+3. Make a variable holder for the client in the `Main.hx` and initialize it in there.
+ ```hx
+ // Put this at the top
+ import GJClient;
+
+ // Put this inside of the Main class
+ public static var gjClient:GJClient;
+
+ // Put this inside the "new" function
+  gjClient = new GJClient({id: 0, key: ""}); // replace this with the actual data of your game
+ ```
 
 ## Still have doubts about its use?
 If you're still have questions about how to use this client correctly, or if you want some menu templates to begin with for your game (FNF mods or anything else), you're free to talk to me by [Twitter](https://twitter.com/GamerPablito1) or Discord (GamerPablito#3132). I have no kind of special access you need to do this at all!
