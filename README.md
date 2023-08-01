@@ -13,13 +13,6 @@ Hope this custom tool would come in handy to you :)
 NOTE: Don't get confused with the GJ Integration made by [TentaRJ](https://github.com/TentaRJ/GameJolt-FNF-Integration)
 
 ## Special Features
-- Includes haxe libraries like:
-  - `Json` (used to cast specific information formats from the fetched data)
-  - `Md5` (used to encript a special signature to access the API in a safe way)
-  - `Sha1` (used as alternative for `Md5`, works the same)
-  - `Bytes` (used to load information from web without lag)
-  - `Events` (used to trigger actions with less effort)
-
 - This client is totally independient, it doesn't requires any extra GameJolt libraries to work, cuz everything is written and composed here
 - This also contains some files with info formats about how some data has to be received like, this in order to let the user know how to use the data in their game
 - Has many extra features that can be fetched instantly without you have to code a lot for them
