@@ -1,6 +1,7 @@
 package;
 
 import flixel.util.typeLimit.OneOfTwo;
+import haxe.Http;
 import haxe.Json;
 import haxe.Timer;
 import haxe.crypto.Md5;
@@ -9,11 +10,11 @@ import lime.app.Application;
 import lime.app.Future;
 import lime.app.Promise;
 import lime.utils.Bytes;
+import sys.thread.Thread;
 
 using StringTools;
 
-typedef Response =
-{
+typedef Response = {
 	// General
 	success:String,
 	?message:String,
@@ -33,8 +34,7 @@ typedef Response =
  * @param friends Friends List from the current user logged in.
  * @param trophies Trophies LIst and their state according to the data from the current user logged in.
  */
-typedef Session =
-{
+typedef Session = {
 	info:User,
 	friends:Array<User>,
 	trophies:Array<Trophy>
@@ -57,8 +57,7 @@ typedef Session =
  * @param developer_website The website of the User.
  * @param developer_description The description of the User.
  */
-typedef User =
-{
+typedef User = {
 	id:Int,
 	type:String,
 	username:String,
@@ -83,8 +82,7 @@ typedef User =
  * @param image_url The link of the image that represents the Trophy.
  * @param achieved Whether this Trophy was achieved or not, it can be a string if it was (with info about how much time ago it was achieved) or bool if not (false).
  */
-typedef Trophy =
-{
+typedef Trophy = {
 	id:Int,
 	title:String,
 	description:String,
@@ -93,8 +91,7 @@ typedef Trophy =
 	achieved:String
 }
 
-class GJClient
-{
+class GJClient {
 	/**
 	 * If set to `true`, requests will be made using `Md5` signature encryptation. \
 	 * If set to `false`, they'll use `Sha1` signature encryptation instead.
@@ -102,11 +99,6 @@ class GJClient
 	 * Default is `true`.
 	 */
 	public var useMd5:Bool = true;
-
-	/**
-	 * Whether if you want to enable debug notes of the requests in console or not.
-	 */
-	public var debugNotes:Bool = false;
 
 	/**
 	 * A holder that keeps loaded information of the user that's currently logged in. \
@@ -117,15 +109,16 @@ class GJClient
 	var game:{id:Int, key:String};
 	var user:{name:String, token:String} = {name: '', token: ''};
 	var pingState:String = 'active';
+	var debugNotes:Bool = false;
 
 	/**
 	 * Makes a new `GJClient` constructor.
 	 * @param game The ID and Private Key of your game goes here.
 	 * @param pingInterval Interval in seconds for the Client to make ping session signals to GameJolt. Default is 3.
 	 */
-	public function new(game:{id:Int, key:String}, pingInterval:Float = 3)
-	{
+	public function new(game:{id:Int, key:String}, pingInterval:Float = 3, debugNotes:Bool = false) {
 		this.game = game;
+		this.debugNotes = debugNotes;
 		Application.current.window.onFocusIn.add(() -> pingState = 'active');
 		Application.current.window.onFocusOut.add(() -> pingState = 'idle');
 
@@ -146,52 +139,38 @@ class GJClient
 	 * @param newUser The username and user token of the new user to log in.
 	 * @return A `Future` instance where you can set actions if this got success or failure.
 	 */
-	public function login(newUser:Null<{name:String, token:String}>):Future<User>
-	{
+	public function login(newUser:Null<{name:String, token:String}>):Future<User> {
 		var process = new Promise<User>();
 
-		if (newUser.name != '' && newUser.token != '')
-		{
-			if (session == null)
-			{
+		if (newUser.name != '' && newUser.token != '') {
+			if (session == null) {
 				user = newUser;
 				var auth = request('users', 'auth');
-				if (auth.success == 'true' && !isSessionActive())
-				{
+				if (auth.success == 'true' && !isSessionActive()) {
 					var connect = request('sessions', 'open');
-					if (connect.success == 'true')
-					{
+					if (connect.success == 'true') {
 						var userInfo = getUserData();
 						var friends = getFriendsList();
 						var trophies = getTrophiesList();
 
-						if (userInfo != null && friends != null && trophies != null)
-						{
+						if (userInfo != null && friends != null && trophies != null) {
 							session = {info: userInfo, friends: friends, trophies: trophies};
 							process.complete(userInfo);
-						}
-						else
-						{
+						} else {
 							user = {name: "", token: ""};
 							logout(() -> process.error("Failed to fetch session data!"));
 						}
-					}
-					else
-					{
+					} else {
 						user = {name: "", token: ""};
 						process.error(connect.message != null ? connect.message : "Something went wrong during logging in!");
 					}
-				}
-				else
-				{
+				} else {
 					user = {name: "", token: ""};
 					process.error(auth.message != null ? auth.message : "Something went wrong during authentication!");
 				}
-			}
-			else
+			} else
 				process.error("You're already logged in!");
-		}
-		else
+		} else
 			process.error("User data is missing (username and/or user token)!");
 
 		return process.future;
@@ -201,13 +180,10 @@ class GJClient
 	 * Close the current session and makes `null` the `session` variable.
 	 * @param onComplete Optional action when the request is done.
 	 */
-	public function logout(?onComplete:() -> Void)
-	{
-		if (session != null)
-		{
+	public function logout(?onComplete:() -> Void) {
+		if (session != null) {
 			request('sessions', 'close');
-			if (!isSessionActive())
-			{
+			if (!isSessionActive()) {
 				user = {name: "", token: ""};
 				session = null;
 			}
@@ -221,24 +197,20 @@ class GJClient
 	 * @param id The ID of the trophy to achieve.
 	 * @return A `Future` instance where you can set actions if this got success or failure.
 	 */
-	public function trophieAdd(id:Int):Future<Trophy>
-	{
+	public function trophieAdd(id:Int):Future<Trophy> {
 		var promise = new Promise<Trophy>();
 		var process = request('trophies', 'add-achieved', ['trophy_id' => Std.string(id)]);
-		if (process.success == 'true' && session != null)
-		{
+		if (process.success == 'true' && session != null) {
 			var newTrophies = getTrophiesList();
 			if (newTrophies != null)
 				session.trophies = newTrophies;
 
 			for (t in session.trophies)
-				if (t.id == id)
-				{
+				if (t.id == id) {
 					promise.complete(t);
 					break;
 				}
-		}
-		else
+		} else
 			promise.error(process.message != null ? process.message : "Something went wrong at trophie addition!");
 
 		return promise.future;
@@ -249,34 +221,28 @@ class GJClient
 	 * @param id The ID of the trophy to remove.
 	 * @return A `Future` instance where you can set actions if this got success or failure.
 	 */
-	public function trophieRemove(id:Int):Future<Trophy>
-	{
+	public function trophieRemove(id:Int):Future<Trophy> {
 		var promise = new Promise<Trophy>();
 		var process = request('trophies', 'remove-achieved', ['trophy_id' => Std.string(id)]);
-		if (process.success == 'true' && session != null)
-		{
+		if (process.success == 'true' && session != null) {
 			var newTrophies = getTrophiesList();
 			if (newTrophies != null)
 				session.trophies = newTrophies;
 
 			for (t in session.trophies)
-				if (t.id == id)
-				{
+				if (t.id == id) {
 					promise.complete(t);
 					break;
 				}
-		}
-		else
+		} else
 			promise.error(process.message != null ? process.message : "Something went wrong at trophie addition!");
 
 		return promise.future;
 	}
 
-	function getUserData(?id:OneOfTwo<Int, String>):Null<User>
-	{
+	function getUserData(?id:OneOfTwo<Int, String>):Null<User> {
 		var userLoad = request('users', null, id != null ? [(id is Int ? 'user_id' : 'username') => Std.string(id)] : null, id == null, false);
-		if (userLoad.success == 'true')
-		{
+		if (userLoad.success == 'true') {
 			var daUser = userLoad.users[0];
 			var newPFP = daUser.avatar_url.substring(0, 32);
 
@@ -290,14 +256,11 @@ class GJClient
 		return null;
 	}
 
-	function getFriendsList():Null<Array<User>>
-	{
+	function getFriendsList():Null<Array<User>> {
 		var data = request('friends');
-		if (data.success == 'true')
-		{
+		if (data.success == 'true') {
 			var friends:Array<User> = [];
-			for (person in data.friends)
-			{
+			for (person in data.friends) {
 				var fetchPerson = getUserData(person.friend_id);
 				if (fetchPerson == null)
 					continue;
@@ -310,30 +273,23 @@ class GJClient
 		return null;
 	}
 
-	function getTrophiesList():Null<Array<Trophy>>
-	{
+	function getTrophiesList():Null<Array<Trophy>> {
 		var trophList:Null<Array<Trophy>> = null;
 		var data = request('trophies');
 
-		if (data.success == 'true')
-		{
+		if (data.success == 'true') {
 			trophList = data.trophies;
 
-			for (t in trophList)
-			{
+			for (t in trophList) {
 				var newUrl:String = "";
-				if (t.image_url.startsWith('https://m.'))
-				{
+				if (t.image_url.startsWith('https://m.')) {
 					newUrl = t.image_url.substring(0, 37);
 					newUrl += '1000';
 					newUrl += t.image_url.substr(40);
 					newUrl = newUrl.replace(".jpg", ".png");
-				}
-				else
-				{
+				} else {
 					newUrl = "https://s.gjcdn.net/assets/";
-					switch (t.image_url.substring(24).replace('.jpg', ''))
-					{
+					switch (t.image_url.substring(24).replace('.jpg', '')) {
 						case "trophy-bronze-1":
 							newUrl += "9c2c91d0";
 						case "trophy-silver-1":
@@ -355,35 +311,34 @@ class GJClient
 	function isSessionActive():Bool
 		return request('sessions', 'check').success == 'true';
 
-	function request(command:String, ?action:String, ?params:Map<String, String>, userAllowed:Bool = true, tokenAllowed:Bool = true):Response
-	{
-		var mainURL:String = "http://api.gamejolt.com/api/game/v1_2/";
-		var process:String = '$command${action != null ? '/$action' : ""}';
+	function request(command:String, ?action:String, ?params:Map<String, String>, userAllowed:Bool = true, tokenAllowed:Bool = true):Future<Response> {
+		Thread.create(function() {
+			var mainURL:String = "http://api.gamejolt.com/api/game/v1_2/";
+			var process:String = '$command${action != null ? '/$action' : ""}';
 
-		mainURL += process;
-		mainURL += '/?game_id=${game.id}';
+			mainURL += process;
+			mainURL += '/?game_id=${game.id}';
 
-		if (userAllowed)
-			mainURL += '&username=${user.name}';
-		if (tokenAllowed)
-			mainURL += '&user_token=${user.token}';
-		if (params != null)
-			for (k => v in params)
-				mainURL += '&$k=$v';
+			if (userAllowed)
+				mainURL += '&username=${user.name}';
+			if (tokenAllowed)
+				mainURL += '&user_token=${user.token}';
+			if (params != null)
+				for (k => v in params)
+					mainURL += '&$k=$v';
 
-		var daEncode:String = mainURL + game.key;
-		mainURL += '&signature=${useMd5 ? Md5.encode(daEncode) : Sha1.encode(daEncode)}';
+			var daEncode:String = mainURL + game.key;
+			mainURL += '&signature=${useMd5 ? Md5.encode(daEncode) : Sha1.encode(daEncode)}';
 
-		var data = Bytes.fromFile(mainURL);
-		var response:Response;
+			var response:Response;
+			var data = new Http(mainURL);
+			data.onData = req -> response = cast Json.parse(req).response;
+			data.onError = error -> response = {success: 'false', message: error};
+			data.request(false);
 
-		if (data == null)
-			response = {success: 'false', message: 'Request failed due to internet disconnection'};
-		else
-			response = cast Json.parse(data.toString()).response;
-
-		if (response.message != null && debugNotes)
-			trace('"$process" => ${response.message}!');
+			if (response.message != null && debugNotes)
+				trace('"$process" => ${response.message}!');
+		});
 
 		return response;
 	}
