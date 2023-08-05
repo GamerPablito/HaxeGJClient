@@ -138,6 +138,11 @@ class GJClient {
 		var promise = new Promise<User>();
 
 		Thread.create(function() {
+			if (session != null) {
+				promise.error("You're already logged in!");
+				return;
+			}
+
 			var auth = request("users", "auth");
 			promise.progress(1, 3);
 			if (auth.message == null) {
