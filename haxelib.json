@@ -15,7 +15,8 @@
         "GamerPablito"
     ],
     "dependencies": {
-        "lime": ""
+        "lime": "8.0.1",
+        "flixel": "5.2.2"
     },
     "main": "GJClient"
 }
