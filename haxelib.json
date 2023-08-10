@@ -8,9 +8,9 @@
         "fnf"
     ],
     "description": "An useful tool to work with GameJolt for FNF Mods and Haxe Games as well!",
-    "version": "3.0.0",
+    "version": "3.1.0",
     "classPath": "gamejolt/",
-    "releasenote": "A massive overhaul!",
+    "releasenote": "Data Storage and Trophie Addition Improvement!",
     "contributors": [
         "GamerPablito"
     ],

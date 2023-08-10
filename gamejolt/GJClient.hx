@@ -23,6 +23,9 @@ typedef Response = {
 	?trophies:Array<Trophy>,
 	// Friends Fetching
 	?friends:Array<{friend_id:Int}>,
+	// Data Store Fetching
+	?keys:Array<{key:String}>,
+	?data:String
 }
 
 /**
@@ -31,12 +34,14 @@ typedef Response = {
  * 
  * @param info Information data about the current user logged in.
  * @param friends Friends List from the current user logged in.
- * @param trophies Trophies LIst and their state according to the data from the current user logged in.
+ * @param trophies Trophies List and their state according to the data from the current user logged in.
+ * @param data Information saved in the game's data store about the current user logged in.
  */
 typedef Session = {
 	info:User,
 	friends:Array<User>,
-	trophies:Array<Trophy>
+	trophies:Array<Trophy>,
+	data:Map<String, IntOrString>
 }
 
 /**
@@ -90,6 +95,20 @@ typedef Trophy = {
 	achieved:String
 }
 
+/**
+ * An enum class to clasify Data Store update functions
+ */
+enum DataUpdateType {
+	Add(n:Int);
+	Substract(n:Int);
+	Multiply(n:Int);
+	Divide(n:Int);
+	Append(t:String);
+	Prepend(t:String);
+}
+
+typedef IntOrString = OneOfTwo<Int, String>;
+
 class GJClient {
 	/**
 	 * If set to `true`, requests will be made using `Md5` signature encryptation. \
@@ -105,12 +124,21 @@ class GJClient {
 	 */
 	public var session(default, null):Null<Session> = null;
 
+	/**
+	 * A holder that keeps loaded information about the Data Store of your game.
+	 * If there's no session active, this will be `null`.
+	 */
+	public var gameStore(default, null):Null<Map<String, IntOrString>> = null;
+
+	// Holders :)
 	var game:{id:Int, key:String};
 	var user:{name:String, token:String} = {name: '', token: ''};
+
+	// The ping state, updated by the game window focus
 	var pingState:String = 'active';
 
 	/**
-	 * Makes a new `GJClient` constructor.
+	 * Creates a new `GJClient` constructor.
 	 * @param game The ID and Private Key of your game goes here.
 	 * @param pingInterval Interval in seconds for the Client to make ping session signals to GameJolt. Default is 3.
 	 */
@@ -129,7 +157,7 @@ class GJClient {
 	}
 
 	/**
-	 * Opens a new session and writes `session` variable if successful.
+	 * Opens a new session and writes `session` and `gameStore` variables if successful.
 	 * @param newUser The username and user token of the new user to log in.
 	 * @return A `Future` instance where you can set actions if this got success or failure.
 	 */
@@ -152,10 +180,16 @@ class GJClient {
 					var u = getUserData();
 					var t = getTrophiesList();
 					var f = getFriendsList();
+					var d = dataFetch();
 					promise.progress(3, 3);
 
-					if (u != null && t != null && f != null) {
-						session = {info: u[0], trophies: t, friends: f};
+					if (u != null && t != null && f != null && d != null) {
+						session = {
+							info: u[0],
+							trophies: t,
+							friends: f,
+							data: d
+						};
 						promise.complete(u[0]);
 					} else {
 						logout();
@@ -176,56 +210,33 @@ class GJClient {
 	}
 
 	/**
-	 * Close the current session and makes `null` the `session` variable.
+	 * Close the current session and makes `null` the `session` and `gameStore` variables.
 	 */
 	public function logout() {
 		request("sessions", "close");
 		user = {name: "", token: ""};
 		session = null;
+		gameStore = null;
 	}
 
 	/**
 	 * Makes the user to achieve a trophy.
 	 * Calls `getTrophiesList()` afterwards to update `session` variable data.
 	 * @param id The ID of the trophy to achieve.
+	 * @param remove Whether to remove the trophy after achieving it or not. Useful for test out trophies and such.
 	 * @return A `Future` instance where you can set actions if this got success or failure.
 	 */
-	public function trophieAdd(id:Int):Future<Trophy> {
+	public function addTrophie(id:Int, remove:Bool = false):Future<Trophy> {
 		var promise = new Promise<Trophy>();
 
 		Thread.create(function() {
 			var data = request('trophies', 'add-achieved', ['trophy_id' => Std.string(id)]);
 			promise.progress(1, 3);
 			if (data.message == null) {
-				var list = getTrophiesList();
-				promise.progress(2, 3);
-				if (list != null)
-					for (trophy in list)
-						if (trophy.id == id) {
-							promise.progress(3, 3);
-							promise.complete(trophy);
-							break;
-						}
-			} else
-				promise.error(data.message);
-		});
+				var data2 = request('trophies', 'remove-achieved', ['trophy_id' => Std.string(id)]);
+				if (data2.message != null)
+					trace('Could not remove the trophie after test');
 
-		return promise.future;
-	}
-
-	/**
-	 * Removes an achieved trophy from the user, useful when you're about to test your game trophies. \
-	 * Calls `getTrophiesList()` afterwards to update `session` variable data.
-	 * @param id The ID of the trophy to remove.
-	 * @return A `Future` instance where you can set actions if this got success or failure.
-	 */
-	public function trophieRemove(id:Int):Future<Trophy> {
-		var promise = new Promise<Trophy>();
-
-		Thread.create(function() {
-			var data = request('trophies', 'remove-achieved', ['trophy_id' => Std.string(id)]);
-			promise.progress(1, 3);
-			if (data.message == null) {
 				var list = getTrophiesList();
 				promise.progress(2, 3);
 				if (list != null)
@@ -251,7 +262,7 @@ class GJClient {
 	 * 				there must be ONLY usernames in the list. Otherwise, this wouldn't work correctly.
 	 * @return The list of the users and their information if succeded.
 	 */
-	public function getUserData(?ids:Array<OneOfTwo<Int, String>>):Null<Array<User>> {
+	public function getUserData(?ids:Array<IntOrString>):Null<Array<User>> {
 		var idList:Array<String> = [];
 		if (ids != null)
 			for (id in ids)
@@ -341,6 +352,109 @@ class GJClient {
 		return null;
 	}
 
+	/**
+	 * Fetches information from the Data Store of the User or the Game.
+	 * It also updates the `session` or `gameStore` variable if this succeed.
+	 * @param fromUser Retrieve from user [`true`] or for the game [`false`]?
+	 * @return The mapped data
+	 */
+	public function dataFetch(fromUser:Bool = true):Null<Map<String, IntOrString>> {
+		var data = request('data-store', 'get-keys', null, fromUser, fromUser);
+		var store:Map<String, IntOrString> = [];
+
+		if (data.message == null) {
+			for (key in data.keys) {
+				var value = dataGet(key.key, fromUser);
+				if (value != null)
+					store.set(key.key, value);
+			}
+
+			if (session != null)
+				if (fromUser)
+					session.data = store;
+				else
+					gameStore = store;
+
+			return store;
+		}
+
+		trace(data.message);
+		return null;
+	}
+
+	/**
+	 * Sets a value for a key or creates a new key with the value in Data Store
+	 * @param key The key name
+	 * @param value The value for the key
+	 * @param forUser Set for user [`true`] or for the game [`false`] ?
+	 */
+	public function dataSet(key:String, value:IntOrString, forUser:Bool = true) {
+		var data = request('data-store', 'set', ['key' => key, 'data' => Std.string(value)], forUser, forUser);
+		if (data.message != null)
+			trace(data.message);
+		else
+			dataFetch(forUser);
+	}
+
+	public function dataGet(key:String, fromUser:Bool = true):Null<IntOrString> {
+		var data = request('data-store', null, ['key' => key], fromUser, fromUser);
+		if (data.message != null) {
+			trace(data.message);
+			return null;
+		}
+
+		var number = Std.parseFloat(data.data);
+		if (!Math.isNaN(number)) {
+			var newNumber = Math.round(number);
+			dataSet(key, newNumber, fromUser);
+			return newNumber;
+		}
+
+		return data.data;
+	}
+
+	public function dataRemove(key:String, fromUser:Bool = true) {
+		var data = request('data-store', 'remove', ['key' => key], fromUser, fromUser);
+		if (data.message != null)
+			trace(data.message);
+		else
+			dataFetch(fromUser);
+	}
+
+	public function dataUpdate(key:String, action:DataUpdateType, forUser:Bool = true) {
+		var value = dataGet(key);
+		if (value == null)
+			return;
+
+		var params:Map<String, String> = ['key' => key];
+		switch (action) {
+			case Add(n):
+				params.set('operation', 'add');
+				params.set('value', Std.string(n));
+			case Substract(n):
+				params.set('operation', 'substract');
+				params.set('value', Std.string(n));
+			case Multiply(n):
+				params.set('operation', 'multiply');
+				params.set('value', Std.string(n));
+			case Divide(n):
+				params.set('operation', 'divide');
+				params.set('value', Std.string(n));
+			case Append(t):
+				params.set('operation', 'append');
+				params.set('value', t);
+			case Prepend(t):
+				params.set('operation', 'prepend');
+				params.set('value', t);
+		}
+
+		var data = request('data-store', 'update', params, forUser, forUser);
+		if (data.message != null)
+			trace(data.message);
+		else
+			dataFetch(forUser);
+	}
+
 	function pingSession() {
 		if (session == null)
 			return;
@@ -353,7 +467,6 @@ class GJClient {
 	}
 
 	function request(command:String, ?action:String, ?params:Map<String, String>, userAllowed:Bool = true, tokenAllowed:Bool = true):Response {
-		var promise = new Promise<Response>();
 		var mainURL:String = "http://api.gamejolt.com/api/game/v1_2/";
 		var process:String = '$command${action != null ? '/$action' : ""}';
 
