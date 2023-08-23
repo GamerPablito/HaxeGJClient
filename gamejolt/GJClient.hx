@@ -11,6 +11,7 @@ import lime.app.Future;
 import lime.app.Promise;
 import sys.thread.Thread;
 
+using Lambda;
 using StringTools;
 
 typedef Response = {
@@ -171,38 +172,31 @@ class GJClient {
 				return;
 			}
 
-			var auth = request("users", "auth");
-			promise.progress(1, 3);
-			if (auth.message == null) {
-				var connect = request("sessions", "open");
-				promise.progress(2, 3);
-				if (connect.message == null) {
-					var u = getUserData();
-					var t = getTrophiesList();
-					var f = getFriendsList();
-					var d = dataFetch();
-					promise.progress(3, 3);
+			var process = requestBatch([
+				construct("users", "auth"),
+				construct("sessions", "open"),
+				construct("users"),
+				construct("trophies"),
+			]);
 
-					if (u != null && t != null && f != null && d != null) {
-						session = {
-							info: u[0],
-							trophies: t,
-							friends: f,
-							data: d
-						};
-						promise.complete(u[0]);
-					} else {
-						logout();
-						promise.error("Failed to fetch session data");
-						return;
-					}
-				} else {
-					promise.error(connect.message);
-					return;
+			if (process.message == null) {
+				var friends = getFriendsList();
+				if (friends == null)
+					friends = [];
+
+				var data = dataFetch();
+				if (data == null)
+					data = [];
+
+				session = {
+					info: process.users[0],
+					trophies: process.trophies,
+					friends: friends,
+					data: data
 				}
 			} else {
-				promise.error(auth.message);
-				return;
+				logout();
+				trace(process.message);
 			}
 		});
 
@@ -213,7 +207,7 @@ class GJClient {
 	 * Close the current session and makes `null` the `session` and `gameStore` variables.
 	 */
 	public function logout() {
-		request("sessions", "close");
+		request(construct("sessions", "close"));
 		user = {name: "", token: ""};
 		session = null;
 		gameStore = null;
@@ -230,24 +224,19 @@ class GJClient {
 		var promise = new Promise<Trophy>();
 
 		Thread.create(function() {
-			var data = request('trophies', 'add-achieved', ['trophy_id' => Std.string(id)]);
-			promise.progress(1, 3);
-			if (data.message == null) {
-				var data2 = request('trophies', 'remove-achieved', ['trophy_id' => Std.string(id)]);
-				if (data2.message != null)
-					trace('Could not remove the trophie after test');
+			var urls:Array<String> = [
+				construct('trophies', 'add-achieved', ['trophy_id' => Std.string(id)]),
+				construct('trophies', ['trophy_id' => Std.string(id)])
+			];
 
-				var list = getTrophiesList();
-				promise.progress(2, 3);
-				if (list != null)
-					for (trophy in list)
-						if (trophy.id == id) {
-							promise.progress(3, 3);
-							promise.complete(trophy);
-							break;
-						}
-			} else
-				promise.error(data.message);
+			if (remove)
+				urls.insert(1, construct('trophies', 'remove-achieved', ['trophy_id' => Std.string(id)]));
+
+			var process = requestBatch(urls);
+			if (process.message == null)
+				promise.complete(process.trophies[0]);
+			else
+				trace(process.message);
 		});
 
 		return promise.future;
@@ -265,18 +254,17 @@ class GJClient {
 	public function getUserData(?ids:Array<IntOrString>):Null<Array<User>> {
 		var idList:Array<String> = [];
 		if (ids != null)
-			for (id in ids)
-				idList.push(Std.string(id));
+			ids.iter(id -> idList.push(Std.string(id)));
 
 		var nullIDs:Bool = ids == null || ids == [];
-		var data = request('users', null, !nullIDs ? [(ids[0] is Int ? 'user_id' : 'username') => idList.join(",")] : null, nullIDs, false);
+		var data = request(construct('users', !nullIDs ? [(ids[0] is Int ? 'user_id' : 'username') => idList.join(",")] : null, nullIDs, false));
 		if (data.message == null) {
-			for (daUser in data.users) {
+			data.users.iter(function(daUser) {
 				var newPFP = daUser.avatar_url.substring(0, 32);
 				newPFP += '1000';
 				newPFP += daUser.avatar_url.substr(34);
 				daUser.avatar_url = newPFP;
-			}
+			});
 
 			if (session != null && nullIDs)
 				session.info = data.users[0];
@@ -297,8 +285,7 @@ class GJClient {
 
 		if (data.message == null) {
 			var ids:Array<Int> = [];
-			for (daFriend in data.friends)
-				ids.push(daFriend.friend_id);
+			data.friends.iter(f -> ids.push(f.friend_id));
 
 			var list = getUserData(ids);
 			if (session != null && list != null)
@@ -319,7 +306,7 @@ class GJClient {
 		var data = request('trophies');
 
 		if (data.message == null) {
-			for (t in data.trophies) {
+			data.trophies.iter(function(t) {
 				var newUrl:String = "";
 				if (t.image_url.startsWith('https://m.')) {
 					newUrl = t.image_url.substring(0, 37);
@@ -342,11 +329,12 @@ class GJClient {
 					newUrl += ".png";
 				}
 				t.image_url = newUrl;
-			}
+			});
+
 			if (session != null)
 				session.trophies = data.trophies;
 			return data.trophies;
-		}
+		};
 
 		trace(data.message);
 		return null;
@@ -359,15 +347,17 @@ class GJClient {
 	 * @return The mapped data
 	 */
 	public function dataFetch(fromUser:Bool = true):Null<Map<String, IntOrString>> {
-		var data = request('data-store', 'get-keys', null, fromUser, fromUser);
+		var data = request(construct('data-store', 'get-keys', fromUser, fromUser));
 		var store:Map<String, IntOrString> = [];
 
 		if (data.message == null) {
-			for (key in data.keys) {
-				var value = dataGet(key.key, fromUser);
-				if (value != null)
-					store.set(key.key, value);
-			}
+			data.keys.iter(function(key) {
+				var value = request(construct('data-store', ['key' => key.key], fromUser, fromUser));
+				if (value.message != null)
+					store.set(key.key, value.data);
+				else
+					trace(value.message);
+			});
 
 			if (session != null)
 				if (fromUser)
@@ -383,49 +373,72 @@ class GJClient {
 	}
 
 	/**
-	 * Sets a value for a key or creates a new key with the value in Data Store
-	 * @param key The key name
-	 * @param value The value for the key
-	 * @param forUser Set for user [`true`] or for the game [`false`] ?
+	 * Sets a new item in the Data Store or overrides an existent one according to the ID key and target desired
+	 * @param key The key of the new item or an existing one
+	 * @param value The value for the key to save
+	 * @param forUser Whether if you want the item to be saved in user data [`true`] or in game data [`false`]
 	 */
 	public function dataSet(key:String, value:IntOrString, forUser:Bool = true) {
-		var data = request('data-store', 'set', ['key' => key, 'data' => Std.string(value)], forUser, forUser);
+		var data = request(construct('data-store', 'set', ['key' => key, 'data' => Std.string(value)], forUser, forUser));
 		if (data.message != null)
 			trace(data.message);
+
+		if (forUser)
+			session.data.set(key, value);
 		else
-			dataFetch(forUser);
+			gameStore.set(key, value);
 	}
 
+	/**
+	 * Fetches an item from the Data Store according to the ID key and target desired
+	 * @param key The key of the item to fetch
+	 * @param fromUser Whether if you want to fetch this from user data [`true`] or from game data [`false`]
+	 * @return An integer or string value
+	 */
 	public function dataGet(key:String, fromUser:Bool = true):Null<IntOrString> {
-		var data = request('data-store', null, ['key' => key], fromUser, fromUser);
-		if (data.message != null) {
-			trace(data.message);
-			return null;
+		var process = request(construct('data-store', ['key' => key], fromUser, fromUser));
+		if (process.message != null) {
+			trace(process.message);
+			if (fromUser && session != null)
+				return session.data.get(key);
+			return gameStore != null ? gameStore.get(key) : null;
 		}
 
-		var number = Std.parseFloat(data.data);
-		if (!Math.isNaN(number)) {
-			var newNumber = Math.round(number);
-			dataSet(key, newNumber, fromUser);
-			return newNumber;
+		var number = Std.parseInt(process.data);
+		if (number != null) {
+			dataSet(key, number, fromUser);
+			return number;
 		}
 
-		return data.data;
+		dataSet(key, process.data, fromUser);
+		return process.data;
 	}
 
+	/**
+	 * Removes an item from the Data Store according to the ID key and target desired
+	 * @param key The key of the item to remove
+	 * @param fromUser Whether if you want to remove this from user data [`true`] or from game data [`false`]
+	 */
 	public function dataRemove(key:String, fromUser:Bool = true) {
-		var data = request('data-store', 'remove', ['key' => key], fromUser, fromUser);
-		if (data.message != null)
-			trace(data.message);
+		var process = request(construct('data-store', 'remove', ['key' => key], fromUser, fromUser));
+		if (process.message != null) {
+			trace(process.message);
+			return;
+		}
+
+		if (fromUser)
+			session.data.remove(key);
 		else
-			dataFetch(fromUser);
+			gameStore.remove(key);
 	}
 
+	/**
+	 * Updates an item value in the Data Store according to the ID key and target desired
+	 * @param key The key of the item whose value you want to update
+	 * @param action The type of update this value will got
+	 * @param forUser Whether if you want to update the item in user data [`true`] or in game data [`false`]
+	 */
 	public function dataUpdate(key:String, action:DataUpdateType, forUser:Bool = true) {
-		var value = dataGet(key);
-		if (value == null)
-			return;
-
 		var params:Map<String, String> = ['key' => key];
 		switch (action) {
 			case Add(n):
@@ -448,41 +461,50 @@ class GJClient {
 				params.set('value', t);
 		}
 
-		var data = request('data-store', 'update', params, forUser, forUser);
-		if (data.message != null)
-			trace(data.message);
+		var process = request(construct('data-store', 'update', params, forUser, forUser));
+		if (process.message == null) {
+			trace(process.message);
+			return;
+		}
+
+		if (forUser)
+			session.data.set(key, process.data);
 		else
-			dataFetch(forUser);
+			gameStore.set(key, process.data);
 	}
 
 	function pingSession() {
 		if (session == null)
 			return;
 
-		var ping = request("sessions", "ping");
+		var ping = request(construct("sessions", "ping"));
 		if (ping.message != null) {
 			logout();
 			trace(ping.message);
 		}
 	}
 
-	function request(command:String, ?action:String, ?params:Map<String, String>, userAllowed:Bool = true, tokenAllowed:Bool = true):Response {
-		var mainURL:String = "http://api.gamejolt.com/api/game/v1_2/";
-		var process:String = '$command${action != null ? '/$action' : ""}';
-
-		mainURL += process;
-		mainURL += '/?game_id=${game.id}';
+	function construct(command:String, ?action:String, ?params:Map<String, String>, userAllowed:Bool = true, tokenAllowed:Bool = true):String {
+		var url:String = '';
+		url += '/$command${action != null ? '/$action' : ""}';
+		url += '/?game_id=${game.id}';
 
 		if (userAllowed)
-			mainURL += '&username=${user.name}';
+			url += '&username=${user.name}';
 		if (tokenAllowed)
-			mainURL += '&user_token=${user.token}';
+			url += '&user_token=${user.token}';
 		if (params != null)
 			for (k => v in params)
-				mainURL += '&$k=$v';
+				url += '&$k=$v';
 
-		var daEncode:String = mainURL + game.key;
-		mainURL += '&signature=${useMd5 ? Md5.encode(daEncode) : Sha1.encode(daEncode)}';
+		return url;
+	}
+
+	function request(url:String):Response {
+		var mainURL:String = "https://api.gamejolt.com/api/game/v1_2";
+		var process:String = url.substr(1, url.indexOf('?') - 1);
+		mainURL += url;
+		sign(mainURL);
 
 		var response:Response;
 		var data = new Http(mainURL);
@@ -494,5 +516,26 @@ class GJClient {
 		data.onError = e -> response = {success: "false", message: '"$process" => $e'};
 		data.request(false);
 		return response;
+	}
+
+	function requestBatch(urls:Array<String>, parallel:Bool = false, breakOnError:Bool = true):Response {
+		var mainURL:String = "https://api.gamejolt.com/api/game/v1_2";
+		mainURL += '/?game_id=${game.id}';
+		mainURL += '&parallel=$parallel';
+		mainURL += '&break_on_error=$breakOnError';
+		urls.iter(u -> mainURL += '&requests[]=${sign(u).urlEncode()}');
+		sign(mainURL);
+
+		var response:Response;
+		var data = new Http(mainURL);
+		data.onData = req -> response = cast Json.parse(req.toString()).response;
+		data.onError = e -> response = {success: "false", message: e};
+		data.request(false);
+		return response;
+	}
+
+	function sign(url:String):String {
+		var urlEncode = url + game.key;
+		return url = '$url&signature=${useMd5 ? Md5.encode(urlEncode) : Sha1.encode(urlEncode)}';
 	}
 }
