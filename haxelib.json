@@ -7,7 +7,7 @@
         "haxeflixel",
         "fnf"
     ],
-    "description": "An useful tool to work with GameJolt for FNF Mods and HaxeFlixel Games as well!",
+    "description": "An useful tool to work with GameJolt for FNF Mods and Haxe Games as well!",
     "version": "4.0.0",
     "classPath": "src/",
     "releasenote": "Every command is now included, along with a new interface!",
@@ -16,8 +16,7 @@
     ],
     "dependencies": {
         "lime": "8.0.1",
-        "openfl": "9.2.2",
-        "flixel": "5.2.2"
+        "openfl": "9.2.2"
     },
     "main": "GJClient"
 }

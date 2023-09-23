@@ -1,5 +1,6 @@
 package gamejolt;
 
+import gamejolt.formats.Account;
 import gamejolt.formats.Response;
 import gamejolt.types.*;
 import haxe.Http;
@@ -19,7 +20,8 @@ using StringTools;
  * But it's better to use the functions already made in there if you don't know what you're doing.
  * @see The [GameJolt API page](https://gamejolt.com/game-api) to see more about how commands work.
  */
-class GJRequest {
+class GJRequest
+{
 	/**
 	 * If `true`, requests will use `Md5` encryptation when creating URLs, otherwise they'll use `Sha1` encryptation.
 	 */
@@ -51,17 +53,26 @@ class GJRequest {
 	 */
 	public var onError(default, set):Null<String->Void> = null;
 
+	/**
+	 * Whether if you want this not to end as error if you make a batch call where one of its subrequests fail or not.
+	 */
+	public var ignoreSubErrors:Bool = false;
+
 	var mainURL(default, never):String = "https://api.gamejolt.com/api/game/v1_2";
 	var process:Null<Future<Response>> = null;
 
-	public function new() {}
+	public function new()
+	{
+	}
 
 	/**
 	 * Makes images to look better when fetched
 	 */
-	function formatResponse(res:Response) {
+	function formatResponse(res:Response)
+	{
 		if (res.users != null)
-			res.users.iter(function(u) {
+			res.users.iter(function(u)
+			{
 				var newPFP = u.avatar_url.substring(0, 32);
 				newPFP += '1000';
 				newPFP += u.avatar_url.substr(34);
@@ -69,16 +80,21 @@ class GJRequest {
 				u.avatar_url = newPFP;
 			});
 		if (res.trophies != null)
-			res.trophies.iter(function(t) {
+			res.trophies.iter(function(t)
+			{
 				var newUrl:String = "";
-				if (t.image_url.startsWith('https://m.')) {
+				if (t.image_url.startsWith('https://m.'))
+				{
 					newUrl = t.image_url.substring(0, 37);
 					newUrl += '1000';
 					newUrl += t.image_url.substr(40);
 					newUrl = newUrl.replace(".jpg", ".png");
-				} else {
+				}
+				else
+				{
 					newUrl = "https://s.gjcdn.net/assets/";
-					switch (t.image_url.substring(24).replace('.jpg', '')) {
+					switch (t.image_url.substring(24).replace('.jpg', ''))
+					{
 						case "trophy-bronze-1":
 							newUrl += "9c2c91d0";
 						case "trophy-silver-1":
@@ -95,14 +111,17 @@ class GJRequest {
 			});
 	}
 
-	function startProcess() {
+	function startProcess()
+	{
 		var promise = new Promise<Response>();
 		var action = '${url.substring(mainURL.length + 1, url.indexOf("?"))}';
 
 		var command:Http = new Http(url);
-		command.onData = function(req) {
+		command.onData = function(req)
+		{
 			var daResponse:Response = cast Json.parse(req).response;
-			if (daResponse.message != null) {
+			if (daResponse.message != null)
+			{
 				lastResponse = {
 					success: false,
 					message: '"$action" => ${daResponse.message}'
@@ -110,13 +129,27 @@ class GJRequest {
 				promise.error(lastResponse.message);
 				return;
 			}
+			else if (daResponse.responses != null && !ignoreSubErrors)
+			{
+				var fetchedError = daResponse.responses.find(res -> res.message != null);
+				if (fetchedError != null)
+				{
+					lastResponse = {
+						success: false,
+						message: '"batch" => $fetchedError'
+					};
+					promise.error(lastResponse.message);
+					return;
+				}
+			}
 
 			formatResponse(daResponse);
 			if (daResponse.responses != null)
 				daResponse.responses.iter(res -> formatResponse(res));
 			promise.complete(lastResponse = daResponse);
 		};
-		command.onError = function(error) {
+		command.onError = function(error)
+		{
 			lastResponse = {
 				success: false,
 				message: '"$action" => $error'
@@ -137,7 +170,8 @@ class GJRequest {
 	/**
 	 * Executes the current URL in a Syncronous way.
 	 */
-	public function execute() {
+	public function execute()
+	{
 		if (isProcessing)
 			return;
 
@@ -147,7 +181,8 @@ class GJRequest {
 	/**
 	 * Executes the current URL in an Asyncronous way.
 	 */
-	public function executeAsync() {
+	public function executeAsync()
+	{
 		if (isProcessing)
 			return;
 
@@ -164,7 +199,8 @@ class GJRequest {
 	 * @param breakOnError Whether you want this to drop an error if one of the subrequests fail or not.
 	 * @return This `GJRequest` instance.
 	 */
-	public function urlFromBatch(requests:Array<RequestType>, parallel:Bool = false, breakOnError:Bool = true):GJRequest {
+	public function urlFromBatch(requests:Array<RequestType>, breakOnError:Bool = false, parallel:Bool = false):GJRequest
+	{
 		var newURL = '$mainURL/batch?game_id=${GJClient.game.id}&parallel=$parallel&break_on_error=$breakOnError';
 		requests.iter(r -> newURL += '&requests[]=${parseType(r, true)}');
 		url = sign(newURL);
@@ -176,19 +212,22 @@ class GJRequest {
 	 * @param request The type of call you wanna assign.
 	 * @return This `GJRequest` instance.
 	 */
-	public function urlFromType(request:RequestType):GJRequest {
+	public function urlFromType(request:RequestType):GJRequest
+	{
 		url = sign('$mainURL${parseType(request)}');
 		return this;
 	}
 
-	function parseType(request:RequestType, signed:Bool = false):String {
+	function parseType(request:RequestType, signed:Bool = false):String
+	{
 		var command:String = "";
 		var action:String = "";
 		var params:Map<String, String> = [];
 		var needsUser:Bool = true;
 		var needsToken:Bool = true;
 
-		switch (request) {
+		switch (request)
+		{
 			case DATA_FETCH(key, userRequired):
 				command = "data-store";
 				params.set("key", key);
@@ -215,7 +254,8 @@ class GJRequest {
 				action = "update";
 				params.set("key", key);
 				needsUser = userRequired;
-				switch (operation) {
+				switch (operation)
+				{
 					case Add(n):
 						params.set('operation', 'add');
 						params.set('value', '$n');
@@ -243,17 +283,20 @@ class GJRequest {
 			case USER_AUTH(account):
 				command = "users";
 				action = "auth";
-				if (account != null) {
+				if (account != null)
+				{
 					needsUser = false;
 					params.set("username", account.user);
 					params.set("user_token", account.token);
 				}
 			case USER_FETCH(userOrIDList):
 				command = "users";
-				if (userOrIDList != null) {
+				if (userOrIDList != null)
+				{
 					needsUser = false;
 					params.set(userOrIDList.exists(u -> Std.parseInt(u) == null) ? "username" : "user_id", '${userOrIDList.join(",")}');
-				} else
+				}
+				else
 					needsToken = false;
 			case SESSION_OPEN:
 				command = "sessions";
@@ -287,7 +330,8 @@ class GJRequest {
 				command = "scores";
 				if (table_id != null)
 					params.set("table_id", '$table_id');
-				if (limit != null) {
+				if (limit != null)
+				{
 					if (limit < 1)
 						limit = 1;
 					if (limit > 100)
@@ -317,7 +361,8 @@ class GJRequest {
 		}
 
 		var account:Account = GJClient.account;
-		if (needsUser && account.user != "") {
+		if (needsUser && account.user != "")
+		{
 			params.set(command == "scores" && action == "add" && account.token == "" ? "guest" : "username", account.user);
 			if (needsToken && account.token != "")
 				params.set("user_token", account.token);
@@ -331,18 +376,21 @@ class GJRequest {
 		return urlSection;
 	}
 
-	function sign(daUrl:String):String {
+	function sign(daUrl:String):String
+	{
 		var urlEncode = daUrl + GJClient.game.key;
 		return '$daUrl&signature=${useMd5 ? Md5.encode(urlEncode) : Sha1.encode(urlEncode)}';
 	}
 
-	function set_onSuccess(value:Null<Response->Void>):Null<Response->Void> {
+	function set_onSuccess(value:Null<Response->Void>):Null<Response->Void>
+	{
 		if (isProcessing)
 			return onSuccess;
 		return onSuccess = value;
 	}
 
-	function set_onError(value:Null<String->Void>):Null<String->Void> {
+	function set_onError(value:Null<String->Void>):Null<String->Void>
+	{
 		if (isProcessing)
 			return onError;
 		return onError = value;

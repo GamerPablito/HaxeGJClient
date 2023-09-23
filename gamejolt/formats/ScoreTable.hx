@@ -8,9 +8,10 @@ package gamejolt.formats;
  * @param description The description of the Score Table.
  * @param primary Whether if this is the Primary Score Table in your game or not.
  */
-typedef ScoreTable = {
+typedef ScoreTable =
+{
 	id:Int,
 	name:String,
 	description:String,
-	primary:String
+	primary:Bool
 }
