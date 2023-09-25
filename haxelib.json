@@ -5,11 +5,12 @@
     "tags": [
         "gamejolt-api",
         "haxeflixel",
+        "haxe",
         "fnf"
     ],
     "description": "An useful tool to work with GameJolt for FNF Mods and Haxe Games as well!",
     "version": "4.0.0",
-    "classPath": "src/",
+    "classPath": "gamejolt/",
     "releasenote": "Every command is now included, along with a new interface!",
     "contributors": [
         "GamerPablito"

@@ -4,7 +4,7 @@ Heya there! GamerPablito here!
 
 Thanks for use this custom client for GameJolt for Haxe, this has very useful functions for different purposes with a little better performance than the default libraries (such as the flixel file ~~"FlxGameJolt"~~ or the original ~~"gamejoltAPI"~~ library stuff).
 
-This was originally made for some Friday Night Funkin' mods, but it can be used for any game made with Haxeflixel as well.
+This was originally made for some Friday Night Funkin' mods, but it can be used for any game made using Haxe as well.
 
 The purpose of this project is to make everything the best way possible, using less space and complexity for a better performance (and by that I mean it can be useful for computers with a very slow processing speed).
 
@@ -17,24 +17,7 @@ NOTE: Don't get confused with the GJ Integration made by [TentaRJ](https://githu
 - This also contains some files with info formats about how some data has to be received like, this in order to let the user know how to use the data in their game
 - Has many extra features that can be fetched instantly without you have to code a lot for them
 - Every file is full of instructions for each command, in order to do the things right if you don't know so much about it
-
-## How to Use
-1. Open the command prompt or Powershell and run: `haxelib install HaxeGJClient`
-2. Open the `project.xml` file and write at the bottom of the libraries section.
- ```xml
- <haxelib name="HaxeGJClient">
- ```
-3. Make a variable holder for the client in the `Main.hx` and initialize it in there.
- ```hx
- // Put this at the top
- import GJClient;
-
- // Put this inside of the Main class
- public static var gjClient:GJClient;
-
- // Put this inside the "new" function
-  gjClient = new GJClient({id: 0, key: ""}); // replace this with the actual data of your game
- ```
+- Check the Wiki Page of this Client in GitHub for more info about its use.
 
 ## Still have doubts about its use?
 If you're still have questions about how to use this client correctly, or if you want some menu templates to begin with for your game (FNF mods or anything else), you're free to talk to me by [Twitter](https://twitter.com/GamerPablito1) or Discord (GamerPablito#3132). I have no kind of special access you need to do this at all!
