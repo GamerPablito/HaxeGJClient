@@ -93,7 +93,7 @@ class GJClient {
 	public function dataSet(key:String, value:String, forUser:Bool):Bool {
 		var success:Bool = false;
 		var keySet = new GJRequest().urlFromType(DATA_SET(key, value, forUser));
-		keySet.onComplete = res -> success = true;
+		keySet.onSuccess = res -> success = true;
 		keySet.onError = e -> trace(e);
 		keySet.execute();
 		return success;
@@ -223,6 +223,21 @@ class GJClient {
 		};
 		scoreTable.onError = e -> promise.error(e);
 		scoreTable.executeAsync();
+		return promise.future;
+	}
+
+	/**
+	 * Returns a list of the trophies registered in your game.
+	 * @param achieved You can set this to true or false whether if you want to fetch only the achieved ones or only the unachieved ones.
+	 * @param trophy_id Set this parameter if you just wanna fetch a single trophy.
+	 * @return A `Future` instance of the Trophies list load.
+	 */
+	public function getTrophyList(?achieved:Bool, ?trophy_id:Int):Future<Array<Trophy>> {
+		var promise = new Promise<Array<Trophy>>();
+		var trophiesReq = new GJRequest().urlFromType(TROPHIES_FETCH(achieved, trophy_id));
+		trophiesReq.onSuccess = req -> promise.complete(req.trophies);
+		trophiesReq.onError = e -> promise.error(e);
+		trophiesReq.executeAsync();
 		return promise.future;
 	}
 

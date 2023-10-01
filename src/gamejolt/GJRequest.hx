@@ -372,7 +372,7 @@ class GJRequest {
 		return onError = value;
 	}
 
-	function set_useMd5(value:Bool):Bool {
+	static function set_useMd5(value:Bool):Bool {
 		if (isProcessing)
 			return useMd5;
 		return useMd5 = value;
