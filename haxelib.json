@@ -9,9 +9,9 @@
         "fnf"
     ],
     "description": "An useful tool to work with GameJolt for FNF Mods and Haxe Games as well!",
-    "version": "4.0.0",
+    "version": "4.0.1",
     "classPath": "src/",
-    "releasenote": "Every command is now included, along with a new interface!",
+    "releasenote": "Minor changes!",
     "contributors": [
         "GamerPablito"
     ],

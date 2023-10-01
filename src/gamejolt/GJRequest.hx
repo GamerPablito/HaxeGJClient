@@ -24,7 +24,7 @@ class GJRequest {
 	/**
 	 * If `true`, requests will use `Md5` encryptation when creating URLs, otherwise they'll use `Sha1` encryptation.
 	 */
-	public static var useMd5:Bool = true;
+	public static var useMd5(default, set):Bool = true;
 
 	/**
 	 * The current URL this request contains to process.
@@ -55,7 +55,7 @@ class GJRequest {
 	/**
 	 * Whether if you want this not to end as error if you make a batch call where one of its subrequests fail or not.
 	 */
-	public var ignoreSubErrors:Bool = false;
+	public var ignoreSubErrors(default, set):Bool = false;
 
 	var mainURL(default, never):String = "https://api.gamejolt.com/api/game/v1_2";
 	var process:Null<Future<Response>> = null;
@@ -370,5 +370,17 @@ class GJRequest {
 		if (isProcessing)
 			return onError;
 		return onError = value;
+	}
+
+	function set_useMd5(value:Bool):Bool {
+		if (isProcessing)
+			return useMd5;
+		return useMd5 = value;
+	}
+
+	function set_ignoreSubErrors(value:Bool):Bool {
+		if (isProcessing)
+			return ignoreSubErrors;
+		return ignoreSubErrors = value;
 	}
 }
