@@ -16,8 +16,7 @@ using StringTools;
  * Don't forget to set data for the `game` variable before creating a new instance!
  * @see The [Wiki Page](https://github.com/GamerPablito/HaxeGJClient/wiki) for more info about its use.
  */
-class GJClient
-{
+class GJClient {
 	/**
 	 * Put you game website API credentials in here, they'll be used by `GJRequest` for command creations and calls.
 	 */
@@ -48,14 +47,11 @@ class GJClient
 	 * 						Must be a value between 0-120, otherwise it won't work as expected.
 	 * 						Default is 5.
 	 */
-	public function new(pingInterval:Float = 5)
-	{
+	public function new(pingInterval:Float = 5) {
 		timeReq = new GJRequest().urlFromType(TIME);
 		pingReq = new GJRequest();
-		pingReq.onError = function(e)
-		{
-			if (loginInfo != null)
-			{
+		pingReq.onError = function(e) {
+			if (loginInfo != null) {
 				trace("Ping failed, You were logged out!");
 				logout();
 			}
@@ -78,8 +74,7 @@ class GJClient
 	 * @param forUser Whether to fetch this from the User Data Store or the Game Data Store.
 	 * @return A `Future` instance fetching the requested data from the key passed in.
 	 */
-	public function dataGet(key:String, fromUser:Bool):Future<String>
-	{
+	public function dataGet(key:String, fromUser:Bool):Future<String> {
 		var promise = new Promise<String>();
 		var keyGet = new GJRequest().urlFromType(DATA_FETCH(key, fromUser));
 		keyGet.onSuccess = res -> promise.complete(res.data);
@@ -93,12 +88,15 @@ class GJClient
 	 * @param key The key whose value is gonna be assignated/overwritten to.
 	 * @param value The value to set for such key.
 	 * @param forUser Whether to set this to the User Data Store or the Game Data Store.
+	 * @return Whether if data could be set correctly or not
 	 */
-	public function dataSet(key:String, value:String, forUser:Bool)
-	{
+	public function dataSet(key:String, value:String, forUser:Bool):Bool {
+		var success:Bool = false;
 		var keySet = new GJRequest().urlFromType(DATA_SET(key, value, forUser));
+		keySet.onComplete = res -> success = true;
 		keySet.onError = e -> trace(e);
 		keySet.execute();
+		return success;
 	}
 
 	/**
@@ -106,24 +104,30 @@ class GJClient
 	 * @param key The key whose value is gonna be updated.
 	 * @param updateType How such value is gonna be updated like.
 	 * @param forUser Whether to update this for the User Data Store or the Game Data Store.
+	 * @return Whether if data could be updated correctly or not
 	 */
-	public function dataUpdate(key:String, updateType:DataUpdateType, forUser:Bool)
-	{
+	public function dataUpdate(key:String, updateType:DataUpdateType, forUser:Bool):Bool {
+		var success:Bool = false;
 		var keyUpdate = new GJRequest().urlFromType(DATA_UPDATE(key, updateType, forUser));
+		keyUpdate.onSuccess = res -> success = true;
 		keyUpdate.onError = e -> trace(e);
 		keyUpdate.execute();
+		return success;
 	}
 
 	/**
 	 * Removes a key (along with its content) away from the Data Store. Runs Syncronously.
 	 * @param key The key to remove.
 	 * @param forUser Whether to remove the key from the User Data Store or the Game Data Store.
+	 * @return Whether if data could be removed correctly or not
 	 */
-	public function dataRemove(key:String, forUser:Bool)
-	{
+	public function dataRemove(key:String, forUser:Bool):Bool {
+		var success:Bool = false;
 		var keyRemove = new GJRequest().urlFromType(DATA_REMOVE(key, forUser));
+		keyRemove.onSuccess = res -> success = true;
 		keyRemove.onError = e -> trace(e);
 		keyRemove.execute();
+		return success;
 	}
 
 	/**
@@ -132,11 +136,9 @@ class GJClient
 	 * @param forUser Whether to set the User Data Store or the Game Data Store to this map.
 	 * @param onComplete Optional callback when the process finish.
 	 */
-	public function dataByStringMap(map:Map<String, String>, forUser:Bool, ?onComplete:() -> Void)
-	{
+	public function dataByStringMap(map:Map<String, String>, forUser:Bool, ?onComplete:() -> Void) {
 		var dataByMap = new GJRequest().urlFromType(DATA_GETKEYS(forUser));
-		dataByMap.onSuccess = function(res)
-		{
+		dataByMap.onSuccess = function(res) {
 			for (key in map.keys())
 				dataSet(key, map.get(key), forUser);
 			res.keys.iter(data -> if (!map.exists(data.key)) dataRemove(data.key, forUser));
@@ -153,15 +155,12 @@ class GJClient
 	 * @param fromUser Whether if you want the User Data Store or the Game Data Store to be fetched.
 	 * @return A `Future` instance fetching the requested Data Store.
 	 */
-	public function getDataStore(fromUser:Bool):Future<Map<String, String>>
-	{
+	public function getDataStore(fromUser:Bool):Future<Map<String, String>> {
 		var promise = new Promise<Map<String, String>>();
 		var dataStoreGet = new GJRequest().urlFromType(DATA_GETKEYS(fromUser));
-		dataStoreGet.onSuccess = function(res)
-		{
+		dataStoreGet.onSuccess = function(res) {
 			var store:Map<String, String> = [];
-			res.keys.iter(function(data)
-			{
+			res.keys.iter(function(data) {
 				var keyReq = new GJRequest().urlFromType(DATA_FETCH(data.key, fromUser));
 				keyReq.onSuccess = res2 -> store.set(data.key, res2.data);
 				keyReq.onError = e -> trace(e);
@@ -178,12 +177,10 @@ class GJClient
 	 * If there's a user logged in, this will return the user's friends list with their respective information.
 	 * @return A `Future` instance fetching the detailed friends list.
 	 */
-	public function getFriendsList():Future<Array<User>>
-	{
+	public function getFriendsList():Future<Array<User>> {
 		var promise = new Promise<Array<User>>();
 		var friends = new GJRequest().urlFromType(FRIENDS);
-		friends.onSuccess = function(res)
-		{
+		friends.onSuccess = function(res) {
 			var daFriends = new GJRequest().urlFromType(USER_FETCH(res.friends.map(f -> Std.string(f.friend_id))));
 			daFriends.onSuccess = res2 -> promise.complete(res2.users);
 			daFriends.onError = e -> promise.error(e);
@@ -198,8 +195,7 @@ class GJClient
 	 * Returns the current time data of the GameJolt Server, formatted in a special way.
 	 * @return A `Future` instance fetching the respective data.
 	 */
-	public function getServerTime():Future<String>
-	{
+	public function getServerTime():Future<String> {
 		var promise = new Promise<String>();
 		timeReq.onSuccess = res -> promise.complete('${res.timezone} | ${res.day}/${res.month}/${res.year} | ${res.hour}:${res.minute}:${res.second}');
 		timeReq.onError = e -> promise.error(e);
@@ -212,21 +208,17 @@ class GJClient
 	 * @param id If you want to fetch an specific Score Table, you can set the ID here.
 	 * @return A `Future` instance of the Score Tables load.
 	 */
-	public function getScoreTables(?id:Int):Future<Array<ScoreTable>>
-	{
+	public function getScoreTables(?id:Int):Future<Array<ScoreTable>> {
 		var promise = new Promise<Array<ScoreTable>>();
 		var scoreTable = new GJRequest().urlFromType(SCORES_TABLES);
-		scoreTable.onSuccess = function(res)
-		{
-			if (id != null)
-			{
+		scoreTable.onSuccess = function(res) {
+			if (id != null) {
 				var daTable = res.tables.find(t -> t.id == id);
 				if (daTable != null)
 					promise.complete([daTable]);
 				else
 					promise.error('Invalid Score Table ID: $id');
-			}
-			else
+			} else
 				promise.complete(res.tables);
 		};
 		scoreTable.onError = e -> promise.error(e);
@@ -246,16 +238,14 @@ class GJClient
 	 * @return A `Future` instance processing the Score registration.
 	 * 			NOTE: It'll end up `onSuccess` only if the score could enter in the top 100 scores in the Score Table.
 	 */
-	public function addScore(sort:Int, tag:String, ?extra_data:String, ?table_id:Int):Future<Score>
-	{
+	public function addScore(sort:Int, tag:String, ?extra_data:String, ?table_id:Int):Future<Score> {
 		var promise = new Promise<Score>();
 		var scoreAdd = new GJRequest().urlFromBatch([
 			SCORES_ADD('$sort $tag', sort, extra_data, table_id),
 			SCORES_FETCH(table_id, 100),
 		]);
 
-		scoreAdd.onSuccess = function(res)
-		{
+		scoreAdd.onSuccess = function(res) {
 			var daScore = res.responses[1].scores.find(s -> s.sort == sort);
 			if (daScore != null)
 				promise.complete(daScore);
@@ -275,8 +265,7 @@ class GJClient
 	 * 						Useful when it comes to test Trophies out.
 	 * @return A `Future` instance processing the Trophy achievement.
 	 */
-	public function addTrophy(id:Int, removeAfter:Bool = false):Future<Trophy>
-	{
+	public function addTrophy(id:Int, removeAfter:Bool = false):Future<Trophy> {
 		var promise = new Promise<Trophy>();
 		var requests:Array<RequestType> = [TROPHIES_ADD(id), TROPHIES_FETCH(null, id)];
 		if (removeAfter)
@@ -284,8 +273,7 @@ class GJClient
 
 		var trophyAdd = new GJRequest().urlFromBatch(requests);
 		trophyAdd.ignoreSubErrors = true;
-		trophyAdd.onSuccess = function(res)
-		{
+		trophyAdd.onSuccess = function(res) {
 			var removeRes = res.responses[2];
 			if (removeRes != null)
 				if (removeRes.message != null)
@@ -306,17 +294,14 @@ class GJClient
 	 * Opens a new Session for `this` to track. It also sets `loginInfo` and returns it if this ends `onSuccess`.
 	 * @return A `Future` instance processing the session opening.
 	 */
-	public function login():Future<User>
-	{
+	public function login():Future<User> {
 		var promise = new Promise<User>();
-		if (loginInfo == null)
-		{
+		if (loginInfo == null) {
 			var loginReq = new GJRequest().urlFromBatch([SESSION_OPEN, USER_FETCH()]);
 			loginReq.onSuccess = res -> promise.complete(loginInfo = res.responses[1].users[0]);
 			loginReq.onError = e -> promise.error(e);
 			loginReq.executeAsync();
-		}
-		else
+		} else
 			promise.error("User is already logged in!");
 		return promise.future;
 	}
@@ -325,16 +310,14 @@ class GJClient
 	 * Closes the current Session if there is one. It also sets `loginInfo` to `null`. Runs Asyncronously.
 	 * @param callback Optional for when the process ends.
 	 */
-	public function logout(?callback:() -> Void)
-	{
+	public function logout(?callback:() -> Void) {
 		loginInfo = null;
 		var logoutReq = new GJRequest().urlFromType(SESSION_CLOSE);
 		logoutReq.onSuccess = res -> if (callback != null) callback();
 		logoutReq.executeAsync();
 	}
 
-	function set_pingActive(value:Bool):Bool
-	{
+	function set_pingActive(value:Bool):Bool {
 		pingReq.urlFromType(SESSION_PING(value));
 		return pingActive = value;
 	}
