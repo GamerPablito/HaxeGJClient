@@ -24,7 +24,7 @@ class GJRequest {
 	/**
 	 * If `true`, requests will use `Md5` encryptation when creating URLs, otherwise they'll use `Sha1` encryptation.
 	 */
-	public static var useMd5(default, set):Bool = true;
+	public static var useMd5:Bool = true;
 
 	/**
 	 * The current URL this request contains to process.
@@ -370,12 +370,6 @@ class GJRequest {
 		if (isProcessing)
 			return onError;
 		return onError = value;
-	}
-
-	static function set_useMd5(value:Bool):Bool {
-		if (isProcessing)
-			return useMd5;
-		return useMd5 = value;
 	}
 
 	function set_ignoreSubErrors(value:Bool):Bool {
