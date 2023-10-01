@@ -29,3 +29,4 @@ You can also check my [Youtube Channel](https://www.youtube.com/channel/UCpavbRR
 - [TentaRJ](https://github.com/TentaRJ) : For being a huge inspiration for me to create this
 - [bimagamongMOP](https://bimagamongmopmain.carrd.co/) : For making me realize a gramatical error in the code ("Trophie" to "Trophy")
 - [xMediKat](https://www.xmedikat.live) : For suggest me ideas to get rid of lagspikes
+- [indigoUan](https://github.com/indigoUan) : For suggest me a better formaulation of some functions
