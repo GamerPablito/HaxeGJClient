@@ -17,11 +17,9 @@ NOTE: Don't get confused with the GJ Integration made by [TentaRJ](https://githu
 - This also contains some files with info formats about how some data has to be received like, this in order to let the user know how to use the data in their game
 - Has many extra features that can be fetched instantly without you have to code a lot for them
 - Every file is full of instructions for each command, in order to do the things right if you don't know so much about it
-- Check the Wiki Page of this Client in GitHub for more info about its use.
 
-## Still have doubts about its use?
+## Have doubts about its use?
 If you're still have questions about how to use this client correctly, or if you want some menu templates to begin with for your game (FNF mods or anything else), you're free to talk to me by [Twitter](https://twitter.com/GamerPablito1) or Discord (GamerPablito#3132). I have no kind of special access you need to do this at all!
-You can also check my [Youtube Channel](https://www.youtube.com/channel/UCpavbRRdISmsF_fpiAuVafg), where you can find a tutorial about its use.
 
 ## Special Thanks
 - [EyeDaleHim](https://github.com/EyeDaleHim) : For suggest me about a better command for printing responses
