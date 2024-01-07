@@ -1,8 +1,7 @@
 package gamejolt;
 
-import gamejolt.formats.Account;
 import gamejolt.formats.Response;
-import gamejolt.types.*;
+import gamejolt.types.RequestType;
 import haxe.Http;
 import haxe.Json;
 import haxe.crypto.Md5;
@@ -17,14 +16,25 @@ using StringTools;
 /**
  * Official class to create communication calls for GameJolt API. \
  * You're even able to use instances of this class individually without the need of the `GJClient`. \
- * But it's better to use the functions already made in there if you don't know what you're doing.
+ * However, the game credentials for instances of `this` must be set in `GJClient.apidata` to be used.
  * @see The [GameJolt API page](https://gamejolt.com/game-api) to see more about how commands work.
  */
-class GJRequest {
+class GJRequest
+{
 	/**
 	 * If `true`, requests will use `Md5` encryptation when creating URLs, otherwise they'll use `Sha1` encryptation.
 	 */
 	public static var useMd5:Bool = true;
+
+	/**
+	 * Whether if this request is using `Md5` or `Sha1` encryptation when creating URLs.
+	 */
+	public var isUsingMd5(default, never):Bool = useMd5;
+
+	/**
+	 * The last response received by the URL execution.
+	 */
+	public var lastResponse:Response = Response.global;
 
 	/**
 	 * The current URL this request contains to process.
@@ -33,159 +43,26 @@ class GJRequest {
 	public var url(default, null):String = "";
 
 	/**
-	 * Whether is this request is currently in process or not.
-	 */
-	public var isProcessing(get, never):Bool;
-
-	/**
-	 * The last response received by the URL processing.
-	 */
-	public var lastResponse(default, null):Response = {success: false, message: "No response was requested yet"};
-
-	/**
-	 * Optional callback for when the processing ends up with success.
-	 */
-	public var onSuccess(default, set):Null<Response->Void> = null;
-
-	/**
-	 * Optional callback for when the processing ends up with an error.
-	 */
-	public var onError(default, set):Null<String->Void> = null;
-
-	/**
 	 * Whether if you want this not to end as error if you make a batch call where one of its subrequests fail or not.
 	 */
-	public var ignoreSubErrors(default, set):Bool = false;
+	public var ignoreSubErrors:Bool = false;
 
 	var mainURL(default, never):String = "https://api.gamejolt.com/api/game/v1_2";
-	var process:Null<Future<Response>> = null;
 
 	public function new() {}
 
 	/**
-	 * Makes images to look better when fetched
-	 */
-	function formatResponse(res:Response) {
-		if (res.users != null)
-			res.users.iter(function(u) {
-				var newPFP = u.avatar_url.substring(0, 32);
-				newPFP += '1000';
-				newPFP += u.avatar_url.substr(34);
-				newPFP = newPFP.replace(".jpg", ".png");
-				u.avatar_url = newPFP;
-			});
-		if (res.trophies != null)
-			res.trophies.iter(function(t) {
-				var newUrl:String = "";
-				if (t.image_url.startsWith('https://m.')) {
-					newUrl = t.image_url.substring(0, 37);
-					newUrl += '1000';
-					newUrl += t.image_url.substr(40);
-					newUrl = newUrl.replace(".jpg", ".png");
-				} else {
-					newUrl = "https://s.gjcdn.net/assets/";
-					switch (t.image_url.substring(24).replace('.jpg', '')) {
-						case "trophy-bronze-1":
-							newUrl += "9c2c91d0";
-						case "trophy-silver-1":
-							newUrl += "b46e352e";
-						case "trophy-gold-1":
-							newUrl += "363ce2dc";
-						case "trophy-platinum-1":
-							newUrl += "92e5330d";
-						default:
-					}
-					newUrl += ".png";
-				}
-				t.image_url = newUrl;
-			});
-	}
-
-	function startProcess() {
-		var promise = new Promise<Response>();
-		var action = '${url.substring(mainURL.length + 1, url.indexOf("?"))}';
-
-		var command:Http = new Http(url);
-		command.onData = function(req) {
-			var daResponse:Response = cast Json.parse(req).response;
-			if (daResponse.message != null) {
-				lastResponse = {
-					success: false,
-					message: '"$action" => ${daResponse.message}'
-				};
-				promise.error(lastResponse.message);
-				return;
-			} else if (daResponse.responses != null && !ignoreSubErrors) {
-				var fetchedError = daResponse.responses.find(res -> res.message != null);
-				if (fetchedError != null) {
-					lastResponse = {
-						success: false,
-						message: '"batch" => $fetchedError'
-					};
-					promise.error(lastResponse.message);
-					return;
-				}
-			}
-
-			formatResponse(daResponse);
-			if (daResponse.responses != null)
-				daResponse.responses.iter(res -> formatResponse(res));
-			promise.complete(lastResponse = daResponse);
-		};
-		command.onError = function(error) {
-			lastResponse = {
-				success: false,
-				message: '"$action" => $error'
-			};
-			promise.error(lastResponse.message);
-		};
-
-		process = promise.future;
-		if (onSuccess != null)
-			process.onComplete(onSuccess);
-		if (onError != null)
-			process.onError(onError);
-
-		command.request(false);
-		process = null;
-	}
-
-	/**
-	 * Executes the current URL in a Syncronous way.
-	 */
-	public function execute() {
-		if (isProcessing)
-			return;
-
-		startProcess();
-	}
-
-	/**
-	 * Executes the current URL in an Asyncronous way.
-	 */
-	public function executeAsync() {
-		if (isProcessing)
-			return;
-
-		Thread.create(() -> startProcess());
-	}
-
-	function get_isProcessing():Bool
-		return process != null;
-
-	/**
 	 * Assigns/Overwrites the URL for this request using a batch call made of a list of `RequestType` subrequests. \
-	 * This will not work if this request is in process to be finished.
-	 * @param requests The list of `RequestType` items for URL construction.
-	 * @param parallel Whether you want the subrequests to be executed in order or not.
+	 * This will not work if this request is currently processed by `execute()`.
+	 * 
+	 * @param requests The list of `RequestType` items for URL construction. You cannot assign more than 50, so be careful!
 	 * @param breakOnError Whether you want this to drop an error if one of the subrequests fail or not.
+	 * @param parallel Whether you want the subrequests to be executed in order (false), or everything at once (true).
 	 * @return This `GJRequest` instance.
 	 */
-	public function urlFromBatch(requests:Array<RequestType>, breakOnError:Bool = false, parallel:Bool = false):GJRequest {
-		if (isProcessing)
-			return this;
-
-		var newURL = '$mainURL/batch?game_id=${GJClient.game.id}&parallel=$parallel&break_on_error=$breakOnError';
+	public function urlFromBatch(requests:Array<RequestType>, breakOnError:Bool = false, parallel:Bool = false):GJRequest
+	{
+		var newURL = '$mainURL/batch?game_id=${GJClient.apidata.id}&parallel=$parallel&break_on_error=$breakOnError';
 		requests.iter(r -> newURL += '&requests[]=${parseType(r, true)}');
 		url = sign(newURL);
 		return this;
@@ -197,49 +74,117 @@ class GJRequest {
 	 * @param request The type of call you wanna assign.
 	 * @return This `GJRequest` instance.
 	 */
-	public function urlFromType(request:RequestType):GJRequest {
-		if (isProcessing)
-			return this;
-
+	public function urlFromType(request:RequestType):GJRequest
+	{
 		url = sign('$mainURL${parseType(request)}');
 		return this;
 	}
 
-	function parseType(request:RequestType, signed:Bool = false):String {
+	public function execute(async:Bool):Future<Response>
+	{
+		var promise = new Promise<Response>();
+
+		function process()
+		{
+			var action = '${url.substring(mainURL.length + 1, url.indexOf("?"))}';
+			var command:Http = new Http(url);
+
+			command.onData = function(req)
+			{
+				lastResponse = cast Json.parse(req).response;
+				if (lastResponse.message != null)
+				{
+					promise.error(lastResponse.message = '"$action" => ${lastResponse.message}');
+					return;
+				}
+				else if (lastResponse.responses != null && !ignoreSubErrors)
+				{
+					var counter:Int = -1;
+					var fetchedError = lastResponse.responses.find(function(res)
+					{
+						counter++;
+						return res.message != null;
+					});
+					if (fetchedError != null)
+					{
+						promise.error(lastResponse.message = '"batch[$counter]" => ${fetchedError.message}');
+						return;
+					}
+				}
+
+				formatResponse(lastResponse);
+				if (lastResponse.responses != null)
+					lastResponse.responses.iter(res -> formatResponse(res));
+				promise.complete(lastResponse);
+			};
+			command.onError = function(error)
+			{
+				lastResponse.message = '"$action" => $error';
+				promise.error(lastResponse.message);
+			};
+			command.request(false);
+		}
+
+		async ? process() : Thread.create(process);
+		return promise.future;
+	}
+
+	function parseType(request:RequestType, signed:Bool = false):String
+	{
 		var command:String = "";
 		var action:String = "";
 		var params:Map<String, String> = [];
-		var needsUser:Bool = true;
-		var needsToken:Bool = true;
 
-		switch (request) {
-			case DATA_FETCH(key, userRequired):
+		switch (request)
+		{
+			case DATA_FETCH(key, username, token):
 				command = "data-store";
 				params.set("key", key);
-				needsUser = userRequired;
-			case DATA_GETKEYS(userRequired, pattern):
+				if (username != null && username != "" && token != null && token != "")
+				{
+					params.set("username", username);
+					params.set("user_token", token);
+				}
+			case DATA_GETKEYS(pattern, username, token):
 				command = "data-store";
 				action = "get-keys";
 				if (pattern != null)
 					params.set("pattern", pattern);
-				needsUser = userRequired;
-			case DATA_REMOVE(key, userRequired):
+				if (username != null && username != "" && token != null && token != "")
+				{
+					params.set("username", username);
+					params.set("user_token", token);
+				}
+			case DATA_REMOVE(key, username, token):
 				command = "data-store";
 				action = "remove";
 				params.set("key", key);
-				needsUser = userRequired;
-			case DATA_SET(key, data, userRequired):
+				if (username != null && username != "" && token != null && token != "")
+				{
+					params.set("username", username);
+					params.set("user_token", token);
+				}
+			case DATA_SET(key, data, username, token):
 				command = "data-store";
 				action = "set";
 				params.set("key", key);
 				params.set("data", data);
-				needsUser = userRequired;
-			case DATA_UPDATE(key, operation, userRequired):
+				if (username != null && username != "" && token != null && token != "")
+				{
+					params.set("username", username);
+					params.set("user_token", token);
+				}
+			case DATA_UPDATE(key, operation, username, token):
 				command = "data-store";
 				action = "update";
 				params.set("key", key);
-				needsUser = userRequired;
-				switch (operation) {
+				if (username != null && username != "" && token != null && token != "")
+				{
+					params.set("username", username);
+					params.set("user_token", token);
+				}
+				switch (operation)
+				{
 					case Add(n):
 						params.set('operation', 'add');
 						params.set('value', '$n');
@@ -259,59 +204,70 @@ class GJRequest {
 						params.set('operation', 'prepend');
 						params.set('value', t);
 				}
-			case FRIENDS:
+			case FRIENDS(username, token):
 				command = "friends";
+				params.set("username", username);
+				params.set("user_token", token);
 			case TIME:
 				command = "time";
-				needsUser = false;
-			case USER_AUTH(account):
+			case USER_AUTH(username, token):
 				command = "users";
 				action = "auth";
-				if (account != null) {
-					needsUser = false;
-					params.set("username", account.user);
-					params.set("user_token", account.token);
-				}
+				params.set("username", username);
+				params.set("user_token", token);
 			case USER_FETCH(userOrIDList):
 				command = "users";
-				if (userOrIDList != null) {
-					needsUser = false;
-					params.set(userOrIDList.exists(u -> Std.parseInt(u) == null) ? "username" : "user_id", '${userOrIDList.join(",")}');
-				} else
-					needsToken = false;
-			case SESSION_OPEN:
+				if (userOrIDList != [])
+					params.set(Std.parseInt(userOrIDList[0]) == null ? "username" : "user_id", userOrIDList.join(","));
+			case SESSION_OPEN(username, token):
 				command = "sessions";
 				action = "open";
-			case SESSION_PING(active):
+				params.set("username", username);
+				params.set("user_token", token);
+			case SESSION_PING(username, token, active):
 				command = "sessions";
 				action = "ping";
 				params.set("status", active ? "active" : "idle");
-			case SESSION_CHECK:
+				params.set("username", username);
+				params.set("user_token", token);
+			case SESSION_CHECK(username, token):
 				command = "sessions";
 				action = "check";
-			case SESSION_CLOSE:
+				params.set("username", username);
+				params.set("user_token", token);
+			case SESSION_CLOSE(username, token):
 				command = "sessions";
 				action = "close";
-			case SCORES_ADD(score, sort, extra_data, table_id):
+				params.set("username", username);
+				params.set("user_token", token);
+			case SCORES_ADD(username, token, score, sort, extra_data, table_id):
 				command = "scores";
 				action = "add";
 				params.set("score", score);
 				params.set("sort", '$sort');
-				if (extra_data != null)
+				if (extra_data != null && extra_data != "")
 					params.set("extra_data", extra_data);
 				if (table_id != null)
 					params.set("table_id", '$table_id');
+				if (token != null && token != "")
+				{
+					params.set("username", username);
+					params.set("user_token", token);
+				}
+				else
+					params.set("guest", username);
 			case SCORES_GETRANK(sort, table_id):
 				command = "scores";
 				action = "get-rank";
 				params.set("sort", '$sort');
 				if (table_id != null)
 					params.set("table_id", '$table_id');
-			case SCORES_FETCH(table_id, limit, betterThan):
+			case SCORES_FETCH(table_id, limit, betterThan, username, token):
 				command = "scores";
 				if (table_id != null)
 					params.set("table_id", '$table_id');
-				if (limit != null) {
+				if (limit != null)
+				{
 					if (limit < 1)
 						limit = 1;
 					if (limit > 100)
@@ -320,34 +276,42 @@ class GJRequest {
 				}
 				if (betterThan != null)
 					params.set(betterThan < 0 ? "worse_than" : "better_than", '${Math.abs(betterThan)}');
+				if (username != null && username != "")
+				{
+					if (token != null && token != "")
+					{
+						params.set("username", username);
+						params.set("user_token", token);
+					}
+					else
+						params.set("guest", username);
+				}
 			case SCORES_TABLES:
 				command = "scores";
 				action = "tables";
-				needsUser = false;
-			case TROPHIES_FETCH(achieved, trophy_id):
+			case TROPHIES_FETCH(username, token, achieved, trophy_id):
 				command = "trophies";
 				if (achieved != null)
 					params.set("achieved", '$achieved');
 				if (trophy_id != null)
 					params.set("trophy_id", '$trophy_id');
-			case TROPHIES_ADD(trophy_id):
+				params.set("username", username);
+				params.set("user_token", token);
+			case TROPHIES_ADD(username, token, trophy_id):
 				command = "trophies";
 				action = "add";
 				params.set("trophy_id", '$trophy_id');
-			case TROPHIES_REMOVE(trophy_id):
+				params.set("username", username);
+				params.set("user_token", token);
+			case TROPHIES_REMOVE(username, token, trophy_id):
 				command = "trophies";
 				action = "remove";
 				params.set("trophy_id", '$trophy_id');
+				params.set("username", username);
+				params.set("user_token", token);
 		}
 
-		var account:Account = GJClient.account;
-		if (needsUser && account.user != "") {
-			params.set(command == "scores" && action == "add" && account.token == "" ? "guest" : "username", account.user);
-			if (needsToken && account.token != "")
-				params.set("user_token", account.token);
-		}
-
-		var urlSection = '/$command${action != "" ? '/$action' : ""}?game_id=${GJClient.game.id}';
+		var urlSection = '/$command${action != "" ? '/$action' : ""}?game_id=${GJClient.apidata.id}';
 		for (k => v in params)
 			urlSection += '&$k=$v';
 		if (signed)
@@ -355,26 +319,55 @@ class GJRequest {
 		return urlSection;
 	}
 
-	function sign(daUrl:String):String {
-		var urlEncode = daUrl + GJClient.game.key;
-		return '$daUrl&signature=${useMd5 ? Md5.encode(urlEncode) : Sha1.encode(urlEncode)}';
+	/**
+	 * Makes images to look better when fetched
+	 */
+	function formatResponse(res:Response)
+	{
+		if (res.users != null)
+			res.users.iter(function(u)
+			{
+				var newPFP = u.avatar_url.substring(0, 32);
+				newPFP += '1000';
+				newPFP += u.avatar_url.substr(34);
+				newPFP = newPFP.replace(".jpg", ".png");
+				u.avatar_url = newPFP;
+			});
+		if (res.trophies != null)
+			res.trophies.iter(function(t)
+			{
+				var newUrl:String = "";
+				if (t.image_url.startsWith('https://m.'))
+				{
+					newUrl = t.image_url.substring(0, 37);
+					newUrl += '1000';
+					newUrl += t.image_url.substr(40);
+					newUrl = newUrl.replace(".jpg", ".png");
+				}
+				else
+				{
+					newUrl = "https://s.gjcdn.net/assets/";
+					switch (t.image_url.substring(24).replace('.jpg', ''))
+					{
+						case "trophy-bronze-1":
+							newUrl += "9c2c91d0";
+						case "trophy-silver-1":
+							newUrl += "b46e352e";
+						case "trophy-gold-1":
+							newUrl += "363ce2dc";
+						case "trophy-platinum-1":
+							newUrl += "92e5330d";
+						default:
+					}
+					newUrl += ".png";
+				}
+				t.image_url = newUrl;
+			});
 	}
 
-	function set_onSuccess(value:Null<Response->Void>):Null<Response->Void> {
-		if (isProcessing)
-			return onSuccess;
-		return onSuccess = value;
-	}
-
-	function set_onError(value:Null<String->Void>):Null<String->Void> {
-		if (isProcessing)
-			return onError;
-		return onError = value;
-	}
-
-	function set_ignoreSubErrors(value:Bool):Bool {
-		if (isProcessing)
-			return ignoreSubErrors;
-		return ignoreSubErrors = value;
+	function sign(daUrl:String):String
+	{
+		var urlEncode = daUrl + GJClient.apidata.key;
+		return '$daUrl&signature=${isUsingMd5 ? Md5.encode(urlEncode) : Sha1.encode(urlEncode)}';
 	}
 }
