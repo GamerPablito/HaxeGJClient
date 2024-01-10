@@ -95,15 +95,17 @@ class GJUser
 	 * @param extra_data If there's some extra data about this Score achievement, you can set it here.
 	 * @param table_id The ID of the Score Table this Score is gonna be added to.
 	 * 					 (If you leave this `null`, this Score will be added to the Primary Score Table of your game)
-	 * @return A `Future` instance holding the success state of the request.
+	 * @return A `Future` instance holding the data of the submitted score if the request was successful.
 	 */
-	public function addScore(sort:Int, tag:String, ?extra_data:String, ?table_id:Int):Future<Bool>
+	public function addScore(sort:Int, tag:String, ?extra_data:String, ?table_id:Int):Future<Score>
 	{
-		var promise:Promise<Bool> = new Promise<Bool>();
-
-		new GJRequest().urlFromType(SCORES_ADD(data.username, token, '$sort $tag', sort, extra_data, table_id))
+		var promise:Promise<Score> = new Promise<Score>();
+		new GJRequest().urlFromBatch([
+			SCORES_ADD(data.username, token, '$sort $tag', sort, extra_data, table_id),
+			SCORES_FETCH(table_id, null, sort - 1, data.username, token)
+		])
 			.execute(true)
-			.onComplete(res -> promise.complete(res.success))
+			.onComplete(res -> promise.complete(Lambda.find(res.responses[1].scores, s -> sort == s.sort)))
 			.onError(e -> promise.error(e));
 		return promise.future;
 	}
@@ -114,25 +116,26 @@ class GJUser
 	 * @param removeAfter Whether to remove the Trophy after achieving it or not,
 	 * 						useful when it comes to Trophy testing and stuff.
 	 * 						Default is `false`.
-	 * @return A `Future` instance holding the success state of the request.
+	 * @return A `Future` instance holding the updated info of such Trophy if the request was successful.
 	 */
-	public function addTrophy(trophyID:Int, removeAfter:Bool = false):Future<Bool>
+	public function addTrophy(trophyID:Int, removeAfter:Bool = false):Future<Trophy>
 	{
-		var promise:Promise<Bool> = new Promise<Bool>();
+		var promise:Promise<Trophy> = new Promise<Trophy>();
 
-		if (!logged || token == "")
+		if (token == "")
 		{
-			promise.complete(false);
+			promise.error("User's game token is missing for trophy achievement");
 			return promise.future;
 		}
 
 		var requests:Array<RequestType> = [TROPHIES_ADD(data.username, token, trophyID)];
 		if (removeAfter)
 			requests.push(TROPHIES_REMOVE(data.username, token, trophyID));
+		requests.push(TROPHIES_FETCH(data.username, token, trophyID));
 
 		new GJRequest().urlFromBatch(requests)
 			.execute(true)
-			.onComplete(res -> promise.complete(res.responses[0].success))
+			.onComplete(res -> promise.complete(res.responses[removeAfter ? 2 : 1].trophies[0]))
 			.onError(e -> promise.error(e));
 		return promise.future;
 	}
