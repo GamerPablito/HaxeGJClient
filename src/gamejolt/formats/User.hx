@@ -21,14 +21,14 @@ class User
 {
 	@:optional public var id:Int;
 	@:optional public var type:String;
-	public var username:String;
+	public var username:String = "";
 	@:optional public var avatar_url:String;
 	@:optional public var signed_up:String;
 	@:optional public var signed_up_timestamp:Int;
 	@:optional public var last_logged_in:String;
 	@:optional public var last_logged_in_timestamp:Int;
 	@:optional public var status:String;
-	public var developer_name:String;
+	public var developer_name:String = "";
 	@:optional public var developer_website:String;
 	@:optional public var developer_description:String;
 }

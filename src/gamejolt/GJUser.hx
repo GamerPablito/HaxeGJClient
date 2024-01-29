@@ -17,22 +17,23 @@ class GJUser
 {
 	/**
 	 * The current data according of the registered User's credentials.
-	 * Use `refresh()` to update.
+	 * Use `refreshData()` to update, if it's possible.
 	 */
-	public var data(default, null):User = {username: "", developer_name: ""};
+	public var data(default, null):User = {};
 
 	/**
-	 * Whether if the User is currently connected to GameJolt or not.
-	 */
-	public var logged(default, null):Bool = false;
-
-	/**
-	 * The Data Store of the User, it can be `null` if there are no credentials registered in.
+	 * The Data Store of the User, it can be `null` if there are no credentials registered in or if the User registered is a Guest.
 	 */
 	public var store(default, null):Null<GJDataStore> = null;
 
+	/**
+	 * Whether if the User is currently connected to GameJolt or not. \
+	 * NOTE: It will remain `false` if the User is a Guest.
+	 */
+	public var logged(default, null):Bool = false;
+
 	var pingActive:Bool = true;
-	var pingTrigger:Null<Timer> = null;
+	var pingTrigger:Timer;
 	var token:String = "";
 
 	/**
@@ -42,54 +43,66 @@ class GJUser
 	{
 		Application.current.window.onFocusIn.add(() -> pingActive = true);
 		Application.current.window.onFocusOut.add(() -> pingActive = false);
+
+		pingTrigger = new Timer(5000);
+		pingTrigger.run = () -> if (logged)
+		{
+			var req = new GJRequest().urlFromType(SESSION_PING(data.username, token, pingActive));
+			req.onError(function(e)
+			{
+				trace('Ping Error: $e. Logging out...');
+				logout();
+			});
+			req.execute(true);
+		};
 	}
 
 	/**
 	 * Declares new credentials for this `GJUser` instance to use. \
+	 * The `data` variable will turn to empty parameters if you leave the `user` field in blank. \
 	 * NOTE: This won't work if the previously User registered here is still logged into GameJolt.
 	 * @param user The username of the user.
-	 * @param token The game token of the user. Leave blank if you wanna register as guest.
+	 * @param token The game token of the user. Leave blank if you want to be registered as guest.
 	 */
-	public function setUserData(user:String = "", token:String = ""):GJUser
+	public function setUserData(user:String = "", token:String = "")
 	{
 		if (logged)
-			return this;
+			return;
+
+		if (user == "")
+		{
+			data = {};
+			return;
+		}
 
 		data = {
 			username: user.toLowerCase(),
 			developer_name: user
 		};
-
-		store = token != "" ? new GJDataStore({username: data.username, token: token}) : null;
-		this.token = token;
-		refresh();
-		return this;
+		store = token != "" ? new GJDataStore({username: data.username, token: this.token = token}) : null;
 	}
 
 	/**
 	 * Loads the User data according the registered credentials, it also overwrites `data`.
+	 * NOTE: You must call this right after you call `setUserData`.
 	 * @return A `Future` instance holding the new User data if the request was successful.
 	 */
-	public function refresh():Future<User>
+	public function refreshData():Future<User>
 	{
 		var promise:Promise<User> = new Promise<User>();
+		if (!logged || token == "")
+			return promise.complete(data).future;
 
-		if (token == "")
-		{
-			promise.error("User's game token is missing for data refreshing");
-			data = {username: "", developer_name: ""};
-			return promise.future;
-		}
-
-		new GJRequest().urlFromBatch([USER_AUTH(data.username, token), USER_FETCH([data.username])], true)
-			.execute(true)
-			.onComplete(res -> promise.complete(data = res.responses[1].users[0]))
-			.onError(e -> promise.error(e));
+		var req = new GJRequest().urlFromBatch([USER_AUTH(data.username, token), USER_FETCH([data.username])], true);
+		req.onComplete(res -> promise.complete(data = res.responses[1].users[0]));
+		req.onError(e -> promise.error(e));
+		req.execute(true);
 		return promise.future;
 	}
 
 	/**
 	 * Registers a new Score from this User into a certain Score Table of your game.
+	 * NOTE: This is the only function available for Guest Users to use.
 	 * @param sort The numerical representation of your score (By example: 500).
 	 * @param tag The tag that goes along with the sort value (By example: "Points" -> 500 Points).
 	 * @param extra_data If there's some extra data about this Score achievement, you can set it here.
@@ -100,11 +113,13 @@ class GJUser
 	public function addScore(sort:Int, tag:String, ?extra_data:String, ?table_id:Int):Future<Bool>
 	{
 		var promise:Promise<Bool> = new Promise<Bool>();
+		if (data == {})
+			return promise.complete(false).future;
 
-		new GJRequest().urlFromType(SCORES_ADD(data.username, token, '$sort $tag', sort, extra_data, table_id))
-			.execute(true)
-			.onComplete(res -> promise.complete(res.success))
-			.onError(e -> promise.error(e));
+		var req = new GJRequest().urlFromType(SCORES_ADD(data.username, token, '$sort $tag', sort, extra_data, table_id));
+		req.onComplete(res -> promise.complete(res.success));
+		req.onError(e -> promise.error(e));
+		req.execute(true);
 		return promise.future;
 	}
 
@@ -116,24 +131,32 @@ class GJUser
 	 * 						Default is `false`.
 	 * @return A `Future` instance holding the success state of the request.
 	 */
-	public function addTrophy(trophyID:Int, removeAfter:Bool = false):Future<Bool>
+	public function addTrophy(trophyID:Int, removeAfter:Bool = false):Future<Trophy>
 	{
-		var promise:Promise<Bool> = new Promise<Bool>();
+		var promise:Promise<Trophy> = new Promise<Trophy>();
 
 		if (!logged || token == "")
 		{
-			promise.complete(false);
+			promise.error("User's session is inactive or game token is missing for trophy achievement");
 			return promise.future;
 		}
 
 		var requests:Array<RequestType> = [TROPHIES_ADD(data.username, token, trophyID)];
 		if (removeAfter)
 			requests.push(TROPHIES_REMOVE(data.username, token, trophyID));
+		requests.push(TROPHIES_FETCH(data.username, token, trophyID));
 
-		new GJRequest().urlFromBatch(requests)
-			.execute(true)
-			.onComplete(res -> promise.complete(res.responses[0].success))
-			.onError(e -> promise.error(e));
+		var req = new GJRequest().urlFromBatch(requests);
+		req.onComplete(function(res)
+		{
+			var msg:Null<String> = res.responses[0].message;
+			if (msg == null)
+				promise.complete(res.responses[removeAfter ? 2 : 1].trophies[0])
+			else
+				promise.error(msg);
+		});
+		req.onError(e -> promise.error(e));
+		req.execute(true);
 		return promise.future;
 	}
 
@@ -146,7 +169,6 @@ class GJUser
 	public function getScoresRank(?table_id:Int):Future<Int>
 	{
 		var promise:Promise<Int> = new Promise<Int>();
-
 		getScoresList(table_id).onComplete(function(scores)
 		{
 			var high:Int = 0;
@@ -154,11 +176,11 @@ class GJUser
 				if (s.sort > high)
 					high = s.sort;
 
-			new GJRequest().urlFromType(SCORES_GETRANK(high, table_id))
-				.execute(false)
-				.onComplete(res -> promise.complete(res.rank))
-				.onError(e -> promise.error(e));
-		});
+			var req = new GJRequest().urlFromType(SCORES_GETRANK(high, table_id));
+			req.onComplete(res -> promise.complete(res.rank));
+			req.onError(e -> promise.error(e));
+			req.execute(false);
+		}).onError(e -> promise.error(e));
 		return promise.future;
 	}
 
@@ -174,11 +196,10 @@ class GJUser
 	public function getScoresList(?table_id:Int, ?limit:Int, ?betterThan:Int):Future<Array<Score>>
 	{
 		var promise:Promise<Array<Score>> = new Promise<Array<Score>>();
-
-		new GJRequest().urlFromType(SCORES_FETCH(table_id, limit, betterThan, data.username, token))
-			.execute(true)
-			.onComplete(res -> promise.complete(res.scores))
-			.onError(e -> promise.error(e));
+		var req = new GJRequest().urlFromType(SCORES_FETCH(table_id, limit, betterThan, data.username, token));
+		req.onComplete(res -> promise.complete(res.scores));
+		req.onError(e -> promise.error(e));
+		req.execute(true);
 		return promise.future;
 	}
 
@@ -192,10 +213,16 @@ class GJUser
 	{
 		var promise:Promise<Array<Trophy>> = new Promise<Array<Trophy>>();
 
-		new GJRequest().urlFromType(TROPHIES_FETCH(data.username, token, achieved))
-			.execute(true)
-			.onComplete(res -> promise.complete(res.trophies))
-			.onError(e -> promise.error(e));
+		if (!logged || token == "")
+		{
+			promise.error("User's session is inactive or game token is missing for Trophy list fetching");
+			return promise.future;
+		}
+
+		var req = new GJRequest().urlFromType(TROPHIES_FETCH(data.username, token, achieved));
+		req.onComplete(res -> promise.complete(res.trophies));
+		req.onError(e -> promise.error(e));
+		req.execute(true);
 		return promise.future;
 	}
 
@@ -207,19 +234,22 @@ class GJUser
 	{
 		var promise:Promise<Array<User>> = new Promise<Array<User>>();
 
-		if (token == "")
+		if (!logged || token == "")
 		{
-			promise.error("User's game token is missing for friend list fetching");
+			promise.error("User's session is inactive or game token is missing for Friend list fetching");
 			return promise.future;
 		}
 
-		new GJRequest().urlFromType(FRIENDS(data.username, token))
-			.execute(true)
-			.onComplete(res -> new GJRequest().urlFromType(USER_FETCH(res.friends.map(f -> Std.string(f.friend_id))))
-				.execute(false)
-				.onComplete(res2 -> promise.complete(res2.users))
-				.onError(e -> promise.error(e)))
-			.onError(e -> promise.error(e));
+		var req = new GJRequest().urlFromType(FRIENDS(data.username, token));
+		req.onComplete(function(res)
+		{
+			var req2 = new GJRequest().urlFromType(USER_FETCH(res.friends.map(f -> Std.string(f.friend_id))));
+			req2.onComplete(res2 -> promise.complete(res2.users));
+			req2.onError(e -> promise.error(e));
+			req2.execute(false);
+		});
+		req.onError(e -> promise.error(e));
+		req.execute(true);
 
 		return promise.future;
 	}
@@ -231,22 +261,13 @@ class GJUser
 	public function logout():Future<Bool>
 	{
 		var promise:Promise<Bool> = new Promise<Bool>();
-
 		if (!logged || token == "")
-		{
-			promise.complete(false);
-			return promise.future;
-		}
+			return promise.complete(false).future;
 
-		new GJRequest().urlFromBatch([SESSION_CLOSE(data.username, token), SESSION_CHECK(data.username, token)])
-			.execute(true)
-			.onComplete(function(res)
-			{
-				if (res.responses[0].success && pingTrigger != null)
-					pingTrigger.stop();
-				promise.complete(logged = res.responses[1].success);
-			})
-			.onError(e -> promise.error(e));
+		var req = new GJRequest().urlFromBatch([SESSION_CLOSE(data.username, token), SESSION_CHECK(data.username, token)], true);
+		req.onComplete(res -> promise.complete(logged = res.responses[1].success));
+		req.onError(e -> promise.error(e));
+		req.execute(true);
 		return promise.future;
 	}
 
@@ -257,27 +278,13 @@ class GJUser
 	public function login():Future<Bool>
 	{
 		var promise:Promise<Bool> = new Promise<Bool>();
-
 		if (logged || token == "")
-		{
-			promise.complete(false);
-			return promise.future;
-		}
+			return promise.complete(false).future;
 
-		new GJRequest().urlFromBatch([SESSION_OPEN(data.username, token), SESSION_CHECK(data.username, token)])
-			.execute(true)
-			.onComplete(function(res)
-			{
-				if (res.responses[0].success)
-				{
-					if (pingTrigger != null)
-						pingTrigger.stop();
-					pingTrigger = new Timer(5000);
-					pingTrigger.run = () -> new GJRequest().urlFromType(SESSION_PING(data.username, token, pingActive)).execute(true).onError(e -> logout());
-				}
-				promise.complete(logged = res.responses[1].success);
-			})
-			.onError(e -> promise.error(e));
+		var req = new GJRequest().urlFromBatch([SESSION_OPEN(data.username, token), SESSION_CHECK(data.username, token)], true);
+		req.onComplete(res -> promise.complete(logged = res.responses[1].success));
+		req.onError(e -> promise.error(e));
+		req.execute(true);
 		return promise.future;
 	}
 }

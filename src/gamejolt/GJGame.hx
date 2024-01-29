@@ -14,7 +14,9 @@ class GJGame
 	/**
 	 * Creates a new `GJGame` instance.
 	 */
-	public function new() {}
+	public function new()
+	{
+	}
 
 	/**
 	 * Obtains the data from a group of Users according to the username or ID they're registered
@@ -25,12 +27,10 @@ class GJGame
 	public function getUserData(userOrIDList:Array<String>):Future<Array<User>>
 	{
 		var promise:Promise<Array<User>> = new Promise<Array<User>>();
-
-		new GJRequest().urlFromType(USER_FETCH(userOrIDList))
-			.execute(true)
-			.onComplete(res -> promise.complete(res.users))
-			.onError(e -> promise.error(e));
-
+		var req = new GJRequest().urlFromType(USER_FETCH(userOrIDList));
+		req.onComplete(res -> promise.complete(res.users));
+		req.onError(e -> promise.error(e));
+		req.execute(true);
 		return promise.future;
 	}
 
@@ -43,28 +43,28 @@ class GJGame
 	public function getScoreTables(?limit:Int):Future<Array<ScoreTable>>
 	{
 		var promise:Promise<Array<ScoreTable>> = new Promise<Array<ScoreTable>>();
-
-		new GJRequest().urlFromType(SCORES_TABLES)
-			.execute(true)
-			.onComplete(function(res)
-			{
-				var tables:Array<ScoreTable> = [];
-				for (t in res.tables)
-					if (!promise.isError)
-						new GJRequest().urlFromType(SCORES_FETCH(t.id, limit))
-							.execute(false)
-							.onComplete(function(res2)
-							{
-								t.scores = res2.scores;
-								tables.push(t);
-							})
-							.onError(e -> promise.error(e));
-
+		var req = new GJRequest().urlFromType(SCORES_TABLES);
+		req.onComplete(function(res)
+		{
+			var tables:Array<ScoreTable> = [];
+			for (t in res.tables)
 				if (!promise.isError)
-					promise.complete(tables);
-			})
-			.onError(e -> promise.error(e));
+				{
+					var req2 = new GJRequest().urlFromType(SCORES_FETCH(t.id, limit));
+					req2.onComplete(function(res2)
+					{
+						t.scores = res2.scores;
+						tables.push(t);
+					});
+					req2.onError(e -> promise.error(e));
+					req2.execute(false);
+				}
 
+			if (!promise.isError)
+				promise.complete(tables);
+		});
+		req.onError(e -> promise.error(e));
+		req.execute(true);
 		return promise.future;
 	}
 
@@ -75,25 +75,24 @@ class GJGame
 	public function getServerTime():Future<String>
 	{
 		var promise:Promise<String> = new Promise<String>();
-
-		new GJRequest().urlFromType(TIME)
-			.execute(true)
-			.onComplete(function(res)
+		var req = new GJRequest().urlFromType(TIME);
+		req.onComplete(function(res)
+		{
+			var dayWeek:String = switch (Date.fromTime(res.timestamp * 1000).getDay())
 			{
-				var dayWeek:String = switch (Date.fromTime(res.timestamp * 1000).getDay())
-				{
-					case 0: "Sunday";
-					case 1: "Monday";
-					case 2: "Tuesday";
-					case 3: "Wednesday";
-					case 4: "Thursday";
-					case 5: "Friday";
-					case 6: "Saturday";
-					default: "";
-				}
-				promise.complete('${res.timezone} | $dayWeek, ${res.day}/${res.month}/${res.year} | ${res.hour}:${res.minute}:${res.second}');
-			})
-			.onError(e -> promise.error(e));
+				case 0: "Sunday";
+				case 1: "Monday";
+				case 2: "Tuesday";
+				case 3: "Wednesday";
+				case 4: "Thursday";
+				case 5: "Friday";
+				case 6: "Saturday";
+				default: "";
+			}
+			promise.complete('${res.timezone} | $dayWeek, ${res.day}/${res.month}/${res.year} | ${res.hour}:${res.minute}:${res.second}');
+		});
+		req.onError(e -> promise.error(e));
+		req.execute(true);
 		return promise.future;
 	}
 }

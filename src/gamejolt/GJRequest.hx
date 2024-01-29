@@ -19,7 +19,7 @@ using StringTools;
  * However, the game credentials for instances of `this` must be set in `GJClient.apidata` to be used.
  * @see The [GameJolt API page](https://gamejolt.com/game-api) to see more about how commands work.
  */
-class GJRequest
+class GJRequest extends Future<Response>
 {
 	/**
 	 * If `true`, requests will use `Md5` encryptation when creating URLs, otherwise they'll use `Sha1` encryptation.
@@ -32,28 +32,25 @@ class GJRequest
 	public var isUsingMd5(default, never):Bool = useMd5;
 
 	/**
-	 * The last response received by the URL execution.
-	 */
-	public var lastResponse:Response = Response.global;
-
-	/**
 	 * The current URL this request contains to process.
 	 * Can be assigned/overwritten using `urlFromType` or `urlFromBatch`.
 	 */
 	public var url(default, null):String = "";
 
 	/**
-	 * Whether if you want this not to end as error if you make a batch call where one of its subrequests fail or not.
+	 * Whether if this currently being executed or not.
 	 */
-	public var ignoreSubErrors:Bool = false;
+	public var executing(default, null):Bool;
 
+	var ignoreSubErrors:Bool = false;
 	var mainURL(default, never):String = "https://api.gamejolt.com/api/game/v1_2";
 
-	public function new() {}
+	public function new()
+		super();
 
 	/**
 	 * Assigns/Overwrites the URL for this request using a batch call made of a list of `RequestType` subrequests. \
-	 * This will not work if this request is currently processed by `execute()`.
+	 * NOTE: This will not work if this request is in process to be finished.
 	 * 
 	 * @param requests The list of `RequestType` items for URL construction. You cannot assign more than 50, so be careful!
 	 * @param breakOnError Whether you want this to drop an error if one of the subrequests fail or not.
@@ -62,7 +59,7 @@ class GJRequest
 	 */
 	public function urlFromBatch(requests:Array<RequestType>, breakOnError:Bool = false, parallel:Bool = false):GJRequest
 	{
-		var newURL = '$mainURL/batch?game_id=${GJClient.apidata.id}&parallel=$parallel&break_on_error=$breakOnError';
+		var newURL = '$mainURL/batch?game_id=${GJClient.apidata.id}&parallel=$parallel&break_on_error=${ignoreSubErrors == !breakOnError}';
 		requests.iter(r -> newURL += '&requests[]=${parseType(r, true)}');
 		url = sign(newURL);
 		return this;
@@ -70,7 +67,7 @@ class GJRequest
 
 	/**
 	 * Assigns/Overwrites the URL for this request using a `RequestType`.
-	 * This will not work if this request is in process to be finished.
+	 * NOTE: This will not work if this request is in process to be finished.
 	 * @param request The type of call you wanna assign.
 	 * @return This `GJRequest` instance.
 	 */
@@ -80,9 +77,14 @@ class GJRequest
 		return this;
 	}
 
-	public function execute(async:Bool):Future<Response>
+	public function execute(async:Bool)
 	{
+		isComplete = isError = false;
+		error = value = null;
+		executing = true;
+
 		var promise = new Promise<Response>();
+		promise.future = this;
 
 		function process()
 		{
@@ -91,42 +93,36 @@ class GJRequest
 
 			command.onData = function(req)
 			{
-				lastResponse = cast Json.parse(req).response;
-				if (lastResponse.message != null)
+				var res:Response = cast Json.parse(req).response;
+				if (res.message != null)
 				{
-					promise.error(lastResponse.message = '"$action" => ${lastResponse.message}');
+					promise.error('"$action" => ${res.message}');
 					return;
 				}
-				else if (lastResponse.responses != null && !ignoreSubErrors)
+				else if (res.responses != null && !ignoreSubErrors)
 				{
 					var counter:Int = -1;
-					var fetchedError = lastResponse.responses.find(function(res)
+					var fetchedError = res.responses.find(function(res2)
 					{
 						counter++;
-						return res.message != null;
+						return res2.message != null;
 					});
 					if (fetchedError != null)
 					{
-						promise.error(lastResponse.message = '"batch[$counter]" => ${fetchedError.message}');
+						promise.error('"batch[$counter]" => ${fetchedError.message}');
 						return;
 					}
 				}
 
-				formatResponse(lastResponse);
-				if (lastResponse.responses != null)
-					lastResponse.responses.iter(res -> formatResponse(res));
-				promise.complete(lastResponse);
+				formatResponse(res);
+				promise.complete(res);
 			};
-			command.onError = function(error)
-			{
-				lastResponse.message = '"$action" => $error';
-				promise.error(lastResponse.message);
-			};
+			command.onError = error -> promise.error('"$action" => $error');
 			command.request(false);
+			executing = false;
 		}
 
 		async ? process() : Thread.create(process);
-		return promise.future;
 	}
 
 	function parseType(request:RequestType, signed:Bool = false):String
@@ -363,6 +359,8 @@ class GJRequest
 				}
 				t.image_url = newUrl;
 			});
+		if (res.responses != null)
+			res.responses.iter(res2 -> formatResponse(res2));
 	}
 
 	function sign(daUrl:String):String

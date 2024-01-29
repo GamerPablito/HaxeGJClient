@@ -21,9 +21,9 @@ class GJDataStore
 	function getKeys():Null<Array<String>>
 	{
 		var keys:Null<Array<String>> = null;
-		new GJRequest().urlFromType(credentials == null ? DATA_GETKEYS() : DATA_GETKEYS(null, credentials.username, credentials.token))
-			.execute(false)
-			.onComplete(res -> keys = res.keys.map(k -> k.key));
+		var req = new GJRequest().urlFromType(credentials == null ? DATA_GETKEYS() : DATA_GETKEYS(null, credentials.username, credentials.token));
+		req.onComplete(res -> keys = res.keys.map(k -> k.key));
+		req.execute(false);
 		return keys;
 	}
 
@@ -34,34 +34,41 @@ class GJDataStore
 	public function save():Future<Bool>
 	{
 		var promise:Promise<Bool> = new Promise<Bool>();
-		var keys = getKeys();
-
-		if (keys == null)
-		{
-			promise.complete(false);
-			return promise.future;
-		}
 
 		Thread.create(function()
 		{
+			var keys = getKeys();
+			if (keys == null)
+			{
+				promise.complete(false);
+				return;
+			}
+
 			for (k => v in instance)
 			{
 				if (promise.isError)
 					break;
-				new GJRequest().urlFromType(credentials == null ? DATA_SET(k, v) : DATA_SET(k, v, credentials.username, credentials.token))
-					.execute(false)
-					.onError(e -> promise.error(e));
+
+				var req = new GJRequest().urlFromType(credentials == null ? DATA_SET(k, v) : DATA_SET(k, v, credentials.username, credentials.token));
+				req.onError(e -> promise.error(e));
+				req.execute(false);
 			}
 
+			var counter:Int = 0;
 			for (k in keys)
 			{
 				if (promise.isError)
 					break;
 
 				if (!instance.exists(k))
-					new GJRequest().urlFromType(credentials == null ? DATA_REMOVE(k) : DATA_REMOVE(k, credentials.username, credentials.token))
-						.execute(false)
-						.onError(e -> promise.error(e));
+				{
+					var req = new GJRequest().urlFromType(credentials == null ? DATA_REMOVE(k) : DATA_REMOVE(k, credentials.username, credentials.token));
+					req.onError(e -> promise.error(e));
+					req.execute(false);
+				}
+
+				counter++;
+				promise.progress(counter, keys.length);
 			}
 
 			if (!promise.isError)
@@ -79,25 +86,27 @@ class GJDataStore
 	{
 		var loadMap:Map<String, String> = [];
 		var promise:Promise<Map<String, String>> = new Promise<Map<String, String>>();
-		var keys = getKeys();
-
-		if (keys == null)
-		{
-			promise.error("Failed to load keys from cloud!");
-			return promise.future;
-		}
 
 		Thread.create(function()
 		{
+			var keys = getKeys();
+			if (keys == null)
+			{
+				promise.error("Failed to load keys from cloud!");
+				return;
+			}
+
 			for (k in keys)
 			{
-				new GJRequest().urlFromType(credentials == null ? DATA_FETCH(k) : DATA_FETCH(k, credentials.username, credentials.token))
-					.execute(false)
-					.onComplete(res -> loadMap.set(k, res.data))
-					.onError(e -> promise.error(e));
 				if (promise.isError)
 					break;
+
+				var req = new GJRequest().urlFromType(credentials == null ? DATA_FETCH(k) : DATA_FETCH(k, credentials.username, credentials.token));
+				req.onComplete(res -> loadMap.set(k, res.data));
+				req.onError(e -> promise.error(e));
+				req.execute(false);
 			}
+
 			if (!promise.isError)
 				promise.complete(instance = loadMap);
 		});
@@ -114,15 +123,15 @@ class GJDataStore
 		var promise:Promise<Bool> = new Promise<Bool>();
 		var type:RequestType = credentials == null ? DATA_REMOVE(key) : DATA_REMOVE(key, credentials.username, credentials.token);
 
-		new GJRequest().urlFromType(type)
-			.execute(true)
-			.onComplete(function(res)
-			{
-				if (res.success)
-					instance.remove(key);
-				promise.complete(res.success);
-			})
-			.onError(e -> promise.error(e));
+		var req = new GJRequest().urlFromType(type);
+		req.onComplete(function(res)
+		{
+			if (res.success)
+				instance.remove(key);
+			promise.complete(res.success);
+		});
+		req.onError(e -> promise.error(e));
+		req.execute(true);
 		return promise.future;
 	}
 
@@ -135,14 +144,15 @@ class GJDataStore
 	public function update(key:String, uType:DataUpdateType):Future<String>
 	{
 		var promise:Promise<String> = new Promise<String>();
-		new GJRequest().urlFromType(credentials == null ? DATA_UPDATE(key, uType) : DATA_UPDATE(key, uType, credentials.username, credentials.token))
-			.execute(true)
-			.onComplete(function(res)
-			{
-				instance.set(key, res.data);
-				promise.complete(res.data);
-			})
-			.onError(e -> promise.error(e));
+		var req = new GJRequest().urlFromType(credentials == null ? DATA_UPDATE(key,
+			uType) : DATA_UPDATE(key, uType, credentials.username, credentials.token));
+		req.onComplete(function(res)
+		{
+			instance.set(key, res.data);
+			promise.complete(res.data);
+		});
+		req.onError(e -> promise.error(e));
+		req.execute(true);
 		return promise.future;
 	}
 
@@ -161,14 +171,14 @@ class GJDataStore
 			return promise.future;
 		}
 
-		new GJRequest().urlFromType(credentials == null ? DATA_FETCH(key) : DATA_FETCH(key, credentials.username, credentials.token))
-			.execute(true)
-			.onComplete(function(res)
-			{
-				instance.set(key, res.data);
-				promise.complete(res.data);
-			})
-			.onError(e -> promise.error(e));
+		var req = new GJRequest().urlFromType(credentials == null ? DATA_FETCH(key) : DATA_FETCH(key, credentials.username, credentials.token));
+		req.execute(true);
+		req.onComplete(function(res)
+		{
+			instance.set(key, res.data);
+			promise.complete(res.data);
+		});
+		req.onError(e -> promise.error(e));
 		return promise.future;
 	}
 
@@ -183,15 +193,15 @@ class GJDataStore
 		var promise:Promise<Bool> = new Promise<Bool>();
 		var type:RequestType = credentials == null ? DATA_SET(key, value) : DATA_SET(key, value, credentials.username, credentials.token);
 
-		new GJRequest().urlFromType(type)
-			.execute(true)
-			.onComplete(function(res)
-			{
-				if (res.success)
-					instance.set(key, value);
-				promise.complete(res.success);
-			})
-			.onError(e -> promise.error(e));
+		var req = new GJRequest().urlFromType(type);
+		req.onComplete(function(res)
+		{
+			if (res.success)
+				instance.set(key, value);
+			promise.complete(res.success);
+		});
+		req.onError(e -> promise.error(e));
+		req.execute(true);
 		return promise.future;
 	}
 }

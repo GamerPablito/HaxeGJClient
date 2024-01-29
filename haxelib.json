@@ -16,8 +16,7 @@
         "GamerPablito"
     ],
     "dependencies": {
-        "lime": "8.0.1",
-        "openfl": "9.2.2"
+        "lime": ""
     },
     "main": "GJClient"
 }
