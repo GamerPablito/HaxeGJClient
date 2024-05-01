@@ -6,7 +6,7 @@ package gamejolt.types;
 enum RequestType
 {
 	DATA_FETCH(key:String, ?username:String, ?token:String);
-	DATA_GETKEYS(?pattern:String, ?username:String, ?token:String);
+	DATA_GETKEYS(?username:String, ?token:String, ?pattern:String);
 	DATA_REMOVE(key:String, ?username:String, ?token:String);
 	DATA_SET(key:String, data:String, ?username:String, ?token:String);
 	DATA_UPDATE(key:String, operation:DataUpdateType, ?username:String, ?token:String);

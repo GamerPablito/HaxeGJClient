@@ -16,19 +16,18 @@ package gamejolt.formats;
  * @param developer_website The website of the User.
  * @param developer_description The description of the User.
  */
-@:structInit
-class User
+typedef User =
 {
-	@:optional public var id:Int;
-	@:optional public var type:String;
-	public var username:String = "";
-	@:optional public var avatar_url:String;
-	@:optional public var signed_up:String;
-	@:optional public var signed_up_timestamp:Int;
-	@:optional public var last_logged_in:String;
-	@:optional public var last_logged_in_timestamp:Int;
-	@:optional public var status:String;
-	public var developer_name:String = "";
-	@:optional public var developer_website:String;
-	@:optional public var developer_description:String;
+	id:Int,
+	type:String,
+	username:String,
+	avatar_url:String,
+	signed_up:String,
+	signed_up_timestamp:Int,
+	last_logged_in:String,
+	last_logged_in_timestamp:Int,
+	status:String,
+	developer_name:String,
+	developer_website:String,
+	developer_description:String
 }
