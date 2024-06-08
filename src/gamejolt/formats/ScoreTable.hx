@@ -1,7 +1,5 @@
 package gamejolt.formats;
 
-import gamejolt.formats.Score;
-
 /**
  * The way the score tables are fetched from your game API.
  * 
@@ -10,11 +8,9 @@ import gamejolt.formats.Score;
  * @param description The description of the Score Table.
  * @param primary Whether if this is the Primary Score Table in your game (1) or not (0).
  */
-typedef ScoreTable =
-{
+typedef ScoreTable = {
 	id:Int,
 	name:String,
 	description:String,
-	primary:Int,
-	?scores:Array<Score>
+	primary:Int
 }

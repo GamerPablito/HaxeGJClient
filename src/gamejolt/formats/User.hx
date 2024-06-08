@@ -16,8 +16,7 @@ package gamejolt.formats;
  * @param developer_website The website of the User.
  * @param developer_description The description of the User.
  */
-typedef User =
-{
+typedef User = {
 	id:Int,
 	type:String,
 	username:String,

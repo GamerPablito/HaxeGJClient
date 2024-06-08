@@ -12,8 +12,7 @@ package gamejolt.formats;
  * @param stored A short description about when the Score was achieved by the User or Guest.
  * @param stored_timestamp A long time stamp (in seconds) of when the Score was achieved by the User or Guest.
  */
-typedef Score =
-{
+typedef Score = {
 	score:String,
 	sort:Int,
 	extra_data:String,

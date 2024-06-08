@@ -1,6 +1,6 @@
 {
     "name": "HaxeGJClient",
-    "url": "https://github.com/GamerPablito/HaxeGJClient/",
+    "url": "https://github.com/GamerPablito/HaxeGJClient",
     "license": "Apache",
     "tags": [
         "gamejolt-api",
@@ -9,8 +9,8 @@
         "fnf"
     ],
     "description": "An useful tool to work with GameJolt for FNF Mods and Haxe Games as well!",
-    "version": "5.0.0",
-    "classPath": "src/",
+    "version": "6.0.0",
+    "classPath": "src/gamejolt",
     "releasenote": "Brand New Organization to Everything!",
     "contributors": [
         "GamerPablito"
@@ -18,5 +18,5 @@
     "dependencies": {
         "lime": ""
     },
-    "main": "GJClient"
+    "main": "GameJolt"
 }

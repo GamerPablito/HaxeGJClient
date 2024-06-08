@@ -19,12 +19,8 @@ NOTE: Don't get confused with the GJ Integration made by [TentaRJ](https://githu
 - Every file is full of instructions for each command, in order to do the things right if you don't know so much about it
 
 ## Have doubts about its use?
-If you're still have questions about how to use this client correctly, or if you want some menu templates to begin with for your game (FNF mods or anything else), you're free to talk to me by [Twitter](https://twitter.com/GamerPablito1) or Discord (GamerPablito#3132). I have no kind of special access you need to do this at all!
+If you have questions about how to use this client correctly, you're free to talk to me by [Twitter](https://twitter.com/GamerPablito1) or Discord (gamerpablito). I have no kind of special access you would need to contact me at all!
 
 ## Special Thanks
-- [EyeDaleHim](https://github.com/EyeDaleHim) : For suggest me about a better command for printing responses
-- [MemeHoovy](https://github.com/MemeHovy) : For giving me a hand explaining differences between this integration and TentaRJ's one
-- [TentaRJ](https://github.com/TentaRJ) : For being a huge inspiration for me to create this
-- [bimagamongMOP](https://bimagamongmopmain.carrd.co/) : For making me realize a gramatical error in the code ("Trophie" to "Trophy")
-- [xMediKat](https://www.xmedikat.live) : For suggest me ideas to get rid of lagspikes
-- [indigoUan](https://github.com/indigoUan) : For suggest me a better formaulation of some functions
+- [TentaRJ](https://github.com/TentaRJ): (Big Inspiration)
+- [xMediKat](https://www.xmedikat.live): (Supporter)
