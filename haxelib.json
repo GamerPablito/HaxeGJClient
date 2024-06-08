@@ -16,7 +16,8 @@
         "GamerPablito"
     ],
     "dependencies": {
-        "lime": ""
+        "lime": "",
+        "openfl": ""
     },
     "main": "GameJolt"
 }
