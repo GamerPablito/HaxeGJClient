@@ -103,7 +103,6 @@ class GJRequest {
 
 		var loader = new openfl.net.URLLoader();
 		loader.addEventListener(Event.COMPLETE, function(complete) {
-			trace("Success!");
 			lastResponse = formatImages(cast haxe.Json.parse(loader.data).response);
 			if (lastResponse.message != null)
 				onError('Response Error: ${lastResponse.message}');
