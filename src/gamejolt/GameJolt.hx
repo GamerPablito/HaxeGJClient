@@ -322,13 +322,13 @@ class GJRequest {
 				params.push({name: "user_token", value: GameJolt.userToken});
 			case TROPHIES_ADD(trophy_id):
 				command = "trophies";
-				action = "add";
+				action = "add-achieved";
 				params.push({name: "trophy_id", value: '$trophy_id'});
 				params.push({name: "username", value: GameJolt.userName});
 				params.push({name: "user_token", value: GameJolt.userToken});
 			case TROPHIES_REMOVE(trophy_id):
 				command = "trophies";
-				action = "remove";
+				action = "remove-achieved";
 				params.push({name: "trophy_id", value: '$trophy_id'});
 				params.push({name: "username", value: GameJolt.userName});
 				params.push({name: "user_token", value: GameJolt.userToken});
