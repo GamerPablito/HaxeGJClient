@@ -9,9 +9,9 @@
         "fnf"
     ],
     "description": "An useful tool to work with GameJolt for FNF Mods and Haxe Games as well!",
-    "version": "6.2.0",
+    "version": "6.2.1",
     "classPath": "src/",
-    "releasenote": "Sync and Async loads are now possible!",
+    "releasenote": "Little patch for the Scores and Score Tables",
     "contributors": [
         "GamerPablito"
     ],

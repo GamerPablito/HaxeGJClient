@@ -15,10 +15,10 @@ package gamejolt.formats;
 typedef Score = {
 	score:String,
 	sort:Int,
-	extra_data:String,
-	user:String,
-	user_id:Int,
-	guest:String,
+	?extra_data:String,
+	?user:String,
+	?user_id:Int,
+	?guest:String,
 	stored:String,
 	stored_timestamp:Int
 }

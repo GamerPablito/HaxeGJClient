@@ -12,5 +12,5 @@ typedef ScoreTable = {
 	id:Int,
 	name:String,
 	description:String,
-	primary:Int
+	primary:Bool
 }
