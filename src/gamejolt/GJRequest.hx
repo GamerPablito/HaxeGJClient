@@ -234,13 +234,13 @@ class GJRequest {
 				action = "auth";
 				params.push({name: "username", value: GameJolt.userName});
 				params.push({name: "user_token", value: GameJolt.userToken});
-			case USER_FETCH(userOrIDList):
+			case USER_FETCH(userOrID):
 				command = "users";
-				if (userOrIDList != [])
-					params.push({
-						name: userOrIDList.exists(userOrID -> Std.parseInt(userOrID) == null) ? "username" : "user_id",
-						value: userOrIDList.join(",").urlEncode()
-					});
+				var letters:Array<String> = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ_-".split("");
+				if (letters.exists(l -> userOrID.contains(l.toUpperCase()) || userOrID.contains(l.toLowerCase())))
+					params.push({name: "username", value: userOrID});
+				else
+					params.push({name: "user_id", value: userOrID.replace(",", "%2C")});
 			case SESSION_OPEN:
 				command = "sessions";
 				action = "open";

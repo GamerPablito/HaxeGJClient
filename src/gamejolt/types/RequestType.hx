@@ -13,7 +13,7 @@ enum RequestType {
 	FRIENDS;
 	TIME;
 	USER_AUTH;
-	USER_FETCH(userOrIDList:Array<String>);
+	USER_FETCH(userOrID:String);
 	SESSION_OPEN;
 	SESSION_PING(active:Bool);
 	SESSION_CHECK;

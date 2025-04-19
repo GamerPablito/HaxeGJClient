@@ -9,9 +9,9 @@
         "fnf"
     ],
     "description": "An useful tool to work with GameJolt for FNF Mods and Haxe Games as well!",
-    "version": "6.2.1",
+    "version": "6.2.4",
     "classPath": "src/",
-    "releasenote": "Little patch for the Scores and Score Tables",
+    "releasenote": "Fixed User Fetching System!",
     "contributors": [
         "GamerPablito"
     ],
